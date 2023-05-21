@@ -1,0 +1,25 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.5.33627.172
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "veh-sim", "veh-sim.vcxproj", "{9AC9B716-EB3C-431B-9A42-416821C57BA6}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|x64 = Debug|x64
+		Release|x64 = Release|x64
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{9AC9B716-EB3C-431B-9A42-416821C57BA6}.Debug|x64.ActiveCfg = Debug|x64
+		{9AC9B716-EB3C-431B-9A42-416821C57BA6}.Debug|x64.Build.0 = Debug|x64
+		{9AC9B716-EB3C-431B-9A42-416821C57BA6}.Release|x64.ActiveCfg = Release|x64
+		{9AC9B716-EB3C-431B-9A42-416821C57BA6}.Release|x64.Build.0 = Release|x64
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {14E2EC4E-E278-4C1D-9E7B-C20E3E909159}
+	EndGlobalSection
+EndGlobal
