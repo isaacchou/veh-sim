@@ -177,6 +177,8 @@ void DroneCam::process_player_input(Controller& ctlr)
 	else if (ctlr.is_key_pressed(GLFW_KEY_S)) move_forward(-distance);
 	if (ctlr.is_key_pressed(GLFW_KEY_A)) side_step(-distance);
 	else if (ctlr.is_key_pressed(GLFW_KEY_D)) side_step(distance);
+	if (ctlr.is_key_pressed(GLFW_KEY_PAGE_UP)) m_pos.y += 0.5f * distance;
+	else if (ctlr.is_key_pressed(GLFW_KEY_PAGE_DOWN)) m_pos.y -= 0.5f * distance;
 
 	glm::vec2 pos = ctlr.get_cursor_movement();
 	ctlr.get_scroll_movement();

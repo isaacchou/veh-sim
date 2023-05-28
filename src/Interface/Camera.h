@@ -29,6 +29,10 @@ protected:
 	glm::vec3 get_view_direction() const;
 
 public:
+	enum class Type {
+		Drone,
+		Body
+	};
 	Camera();
 	virtual ~Camera() {}
 
@@ -42,7 +46,7 @@ public:
 	void switch_from(const Camera& other_camera) { m_other_camera = &other_camera; }
 	
 	// public access
-	void set_position(const glm::vec3 pos) { m_pos = pos; }
+	virtual void set_position(const glm::vec3 pos) { m_pos = pos; }
 	glm::vec3 get_position() const { return m_pos; }
 	glm::vec3 get_focal_point() const { return m_focal_point; }
 	float get_yaw() const { return m_yaw; }
@@ -67,8 +71,7 @@ public:
 	virtual ~BodyCam() {}
 	virtual void process_player_input(Controller& ctlr);
 	virtual void update(const glm::mat4& player_trans);
-
-	void set_camera_pos(const glm::vec3& pos) { m_camera_pos = pos; }
+	virtual void set_position(const glm::vec3& pos) { m_camera_pos = pos; }
 };
 
 // a camera that can move and look around

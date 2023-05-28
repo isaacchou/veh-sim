@@ -65,6 +65,19 @@ if exist stb (
     del stb-master.zip
 )
 
+rem the following third party components need vcpkg
+if not exist vcpkg-2023.04.15 (
+    echo ===
+    echo === Installing vcpkg
+    echo ===
+    curl -Lo vcpkg.zip https://github.com/microsoft/vcpkg/archive/refs/tags/2023.04.15.zip
+    tar xf vcpkg.zip
+    del vcpkg.zip
+    pushd vcpkg-2023.04.15
+    call bootstrap-vcpkg.bat
+    popd
+)
+
 if exist bullet3 (
     echo ===
     echo === Skipping bullet3
@@ -73,24 +86,28 @@ if exist bullet3 (
     echo ===
     echo === Setting up bullet3
     echo ===
-    if not exist vcpkg-2023.04.15 (
-        echo ===
-        echo === Installing vcpkg
-        echo ===
-        curl -Lo vcpkg.zip https://github.com/microsoft/vcpkg/archive/refs/tags/2023.04.15.zip
-        tar xf vcpkg.zip
-        del vcpkg.zip
-        pushd vcpkg-2023.04.15
-        call bootstrap-vcpkg.bat
-        popd
-    )
     pushd vcpkg-2023.04.15
     vcpkg install bullet3:x64-windows-static
     xcopy packages\bullet3_x64-windows-static ..\bullet3 /EIQ
     popd
 )
 
+if exist rapidjson (
+    echo ===
+    echo === Skipping rapidjson
+    echo ===
+) else (
+    echo ===
+    echo === Setting up rapidjson
+    echo ===
+    pushd vcpkg-2023.04.15
+    vcpkg install rapidjson:x64-windows
+    xcopy packages\rapidjson_x64-windows\include ..\rapidjson /EIQ
+    popd
+)
+
 popd
+
 echo ===
 echo === Bootstrap complete
 echo ===

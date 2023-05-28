@@ -4,174 +4,215 @@
  * This software is licensed under the MIT License that can be 
  * found in the LICENSE file at the top of the source tree
  */
-#include <glm/gtc/matrix_transform.hpp>
+#include <array>
+#include <cstdio>
+#include <rapidjson/filereadstream.h>
 #include "GameWorld.h"
 
-void GameWorld::create_ground()
-{	// ground spans along x and z axises at y = 0
-	ShapeDesc* shape = new GroundShapeDesc (1000, 1000);
-	shape->add_texture(get_texture_map().checker_board(100, 100, Color("white"), Color("gray")));
-	createRigidBody(shape,
-					btVector3(0.0f, 0.0f, 0.0f),
-					btQuaternion(btVector3(0.f, 1.f, 0.f), 0.f));
+class JsonUtil
+{ 
+public:
+	static std::vector<float> get_float_array(const rapidjson::Value& array_obj)
+	{
+		std::vector<float> vals;
+		if (array_obj.IsArray()) {
+			for (const auto& val : array_obj.GetArray()) {
+				vals.push_back(val.GetFloat());
+			}
+		}
+		return vals;
+	}
+
+	static bool has_member(const rapidjson::Value& obj, const char* name) { 
+		return obj.FindMember(name) != obj.MemberEnd();
+	}
+
+	static bool has_object(const rapidjson::Value& obj, const char* name) {
+		return has_member(obj, name) && obj[name].IsObject();
+	}
+
+	static bool has_array(const rapidjson::Value& obj, const char* name) {
+		return has_member(obj, name) && obj[name].IsArray();
+	}
+
+	static bool has_string(const rapidjson::Value& obj, const char* name) {
+		return has_member(obj, name) && obj[name].IsString();
+	}
+
+	static bool has_int(const rapidjson::Value& obj, const char* name) {
+		return has_member(obj, name) && obj[name].IsNumber();
+	}
+	
+	static bool has_float(const rapidjson::Value& obj, const char* name) {
+		return has_member(obj, name) && obj[name].IsNumber();
+	}
+
+	static bool has_bool(const rapidjson::Value& obj, const char* name) {
+		return has_member(obj, name) && obj[name].IsBool();
+	}
+};
+
+ShapeDesc* GameWorld::create_shape_from_macro(const rapidjson::Document& doc, const char* macro_name)
+{
+	if (JsonUtil::has_array(doc, "definitions")) {
+		for (const auto& def : doc["definitions"].GetArray()) {
+			if (JsonUtil::has_object(def, macro_name)) {
+				return create_shape_from_json(doc, def[macro_name]);
+			}
+		}				
+	}
+	return NULL;
 }
 
-void GameWorld::create_target(float radius, const btVector3& pos)
-{
-	SphereShapeDesc* shape = new SphereShapeDesc (radius);
-	shape->add_texture(get_texture_map().vertical_stripes(8, Color("red"), Color("white")));
-	createRigidBody(shape, pos,
-					btQuaternion(btVector3(1.f, 0.f, 0.f), glm::radians(-90.f)),
-					10.f);
+ShapeDesc* GameWorld::create_shape_from_json(const rapidjson::Document& doc, const rapidjson::Value& shape_obj)
+{	
+	if (!JsonUtil::has_string(shape_obj, "kind"))
+		return NULL;
+
+	const std::string kind = shape_obj["kind"].GetString();
+	if (kind == "compound") {
+		CompoundShapeDesc* compound_shape = NULL;
+		if (JsonUtil::has_array(shape_obj, "child")) {
+			compound_shape = new CompoundShapeDesc();
+			for (const auto& child : shape_obj["child"].GetArray()) {
+				ShapeDesc* child_shape = NULL;
+				if (JsonUtil::has_object(child, "shape")) {
+					child_shape = create_shape_from_json(doc, child["shape"]);
+				} else if (JsonUtil::has_string(child, "macro")) {
+					child_shape = create_shape_from_macro(doc, child["macro"].GetString());
+				}
+				if (child_shape != NULL) {
+					std::vector<float> p = JsonUtil::get_float_array(child["origin"]);
+					std::vector<float> r = JsonUtil::get_float_array(child["rotation"]);
+					compound_shape->add_child_shape_desc(child_shape, 
+						glm::vec3(p[0], p[1], p[2]),		// origin of child shape in the compound reference frame
+						glm::vec3(r[0], r[1], r[2]), r[3]); // orientation of the child shape
+				}
+			}
+			return compound_shape;
+		}
+	}
+	
+	ShapeDesc* shape = NULL;
+	std::vector<float> dimension = JsonUtil::get_float_array(shape_obj["dimension"]);
+	if (kind == "ground") {
+		shape = new GroundShapeDesc(dimension[0], dimension[1]);
+	} else if (kind == "box") {
+		shape = new BoxShapeDesc(dimension[0], dimension[1], dimension[2]);
+	} else if (kind == "sphere") {
+		shape = new SphereShapeDesc(dimension[0]);
+	} else if (kind == "cylinder") {
+		shape = new CylinderShapeDesc(dimension[0], dimension[1]);
+	} else if (kind == "capsule") {
+		shape = new CapsuleShapeDesc(dimension[0], dimension[1]);
+	} else if (kind == "cone") {
+		shape = new ConeShapeDesc(dimension[0], dimension[1]);
+	} else if (kind == "pyramid") {
+		shape = new PyramidShapeDesc(dimension[0], dimension[1], dimension[2]);
+	} else if (kind == "wedge") {
+		shape = new WedgeShapeDesc(dimension[0], dimension[1], dimension[2], dimension[3]);
+	} else if (kind == "gear") {
+		shape = CreateGearShapeDesc(dimension[0], dimension[1], (int)dimension[2]);
+	}
+
+	if (JsonUtil::has_array(shape_obj, "textures")) {
+		for (const auto& t : shape_obj["textures"].GetArray()) {
+			unsigned int texture = 0;
+			if (JsonUtil::has_member(t, "file")) {
+				texture = get_texture_map().from_file(t["file"].GetString());
+			} else if (JsonUtil::has_member(t, "color")) {
+				std::string clr = t["color"].GetString();
+				texture = get_texture_map().solid_color(clr.c_str());
+			} else if (JsonUtil::has_member(t, "checker_board")) {
+				const rapidjson::Value& p = t["checker_board"].GetArray();
+				texture = get_texture_map().checker_board(p[0].GetInt(), p[1].GetInt(), 
+					Color(p[2].GetString()), Color(p[3].GetString()));
+			} else if (JsonUtil::has_member(t, "diagonal_stripes")) {
+				const rapidjson::Value& p = t["diagonal_stripes"].GetArray();
+				texture = get_texture_map().diagonal_stripes(p[0].GetInt(), p[1].GetInt(), p[2].GetInt(), 
+					Color(p[3].GetString()), Color(p[4].GetString()));
+			} else if (JsonUtil::has_member(t, "vertical_stripes")) {
+				const rapidjson::Value& p = t["vertical_stripes"].GetArray();
+				texture = get_texture_map().vertical_stripes(p[0].GetInt(), 
+					Color(p[1].GetString()), Color(p[2].GetString()));
+			} else if (JsonUtil::has_member(t, "horizontal_stripes")) {
+				const rapidjson::Value& p = t["horizontal_stripes"].GetArray();
+				texture = get_texture_map().horizontal_stripes(p[0].GetInt(), 
+					Color(p[1].GetString()), Color(p[2].GetString()));
+			}
+
+			int repeat = JsonUtil::has_int(t, "repeat") ? t["repeat"].GetInt() : 1;
+			if (repeat == 0) {
+				// set as default texture for all faces without a texture
+				shape->set_texture(texture);
+			} else {
+				shape->add_texture(texture, repeat);
+			}
+		}
+	}
+	return shape;
 }
 
-void GameWorld::create_beach_ball(float radius, const btVector3& pos)
+bool GameWorld::create_scene_from_file(const char* filename)
 {
-	SphereShapeDesc* shape = new SphereShapeDesc(radius);
-	shape->add_texture(get_texture_map().horizontal_stripes(8, Color("red"), Color("white")));
-	createRigidBody(shape, pos,
-					btQuaternion(btVector3(1.f, 0.f, 0.f), glm::radians(-90.f)),
-					10.f);
-}
+	std::array<char, 4096> buf;
+	FILE* f = std::fopen(filename, "rb");
+	if (f == 0) {
+		std::string msg = "failed to open scene file \'";
+		msg += filename;
+		msg += "\'";
+		std::perror(msg.c_str());
+		return false;
+	}
+	rapidjson::FileReadStream stream(f, buf.data(), buf.size());
+	rapidjson::Document doc;
+	doc.ParseStream(stream);
+	fclose(f);
 
-void GameWorld::create_house(const btVector3& pos)
-{
-	CompoundShapeDesc* house = new CompoundShapeDesc ();
-	
-	glm::mat4 trans(1.f);
+	if (JsonUtil::has_array(doc, "scene")) {
+		for (const auto& obj : doc["scene"].GetArray()) {
+			if (!obj.IsObject()) continue;
+					
+			ShapeDesc* shape = NULL;
+			if (JsonUtil::has_object(obj, "shape")) {
+				shape = create_shape_from_json(doc, obj["shape"]);
 
-	ShapeDesc* box = new BoxShapeDesc (10.f, 10.f, 30.f);
-	house->add_child_shape_desc(box, trans);
-	
-	trans = glm::translate(glm::mat4(1.f), glm::vec3(0.f, 15.f, 0.f));
-	ShapeDesc* roof = new WedgeShapeDesc (12.f, 5.f, 30.f, 30.f);
-	house->add_child_shape_desc(roof, trans);
-	
-	// nested compound shapes: steeple
-	CompoundShapeDesc* steeple = new CompoundShapeDesc ();
-	
-	ShapeDesc* steeple_box = new BoxShapeDesc (5.f, 10.f, 5.f);
-	steeple->add_child_shape_desc(steeple_box, glm::mat4(1.f));
-	
-	ShapeDesc* steeple_roof = new PyramidShapeDesc (5.f, 10.f, 5.f);
-	trans = glm::translate(glm::mat4(1.f), glm::vec3(0.f, 20.f, 0.f));
-	steeple->add_child_shape_desc(steeple_roof, trans);
-	//-- end of steeple
+			} else if (JsonUtil::has_string(obj, "macro")) {
+				shape = create_shape_from_macro(doc, obj["macro"].GetString());
+			}
+			if (shape != NULL) {
+				std::vector<float> origin = JsonUtil::get_float_array(obj["origin"]);
+				std::vector<float> rotation = JsonUtil::get_float_array(obj["rotation"]);
+				createRigidBody(shape,
+								btVector3(origin[0], origin[1], origin[2]),
+								btQuaternion(btVector3(rotation[0], rotation[1], rotation[2]), glm::radians(rotation[3])),
+								JsonUtil::has_float(obj, "mass") ? obj["mass"].GetFloat() : 0.f);
+			}
+		}
+	}
 
-	trans = glm::translate(glm::mat4(1.f), glm::vec3(0.f, 15.f, 0.f));
-	house->add_child_shape_desc(steeple, trans);
+	if (JsonUtil::has_object(doc, "player")) {
+		const auto& player = doc["player"];
+		if (JsonUtil::has_string(player, "vehicle") && JsonUtil::has_array(player, "origin")) {
+			std::vector<float> origin = JsonUtil::get_float_array(player["origin"]);
+			const std::string vehicle = player["vehicle"].GetString();
+			if (vehicle == "tank") {
+				add_tank(btVector3(origin[0], origin[1], origin[2]));
+			} else if (vehicle == "V150") {
+				add_v150(btVector3(origin[0], origin[1], origin[2]));
+			}
+		}
+	}
 
-	// add textures
-	box->add_texture(get_texture_map().solid_color(Color(100, 50, 200)), 6);
-	roof->add_texture(get_texture_map().solid_color(Color(255, 200, 200)), 5);
-	steeple_roof->add_texture(get_texture_map().solid_color(Color(150, 200, 200)), 5);
-	steeple_box->add_texture(get_texture_map().solid_color(Color(150, 200, 200)), 5);
-
-	createRigidBody(house,
-					pos, btQuaternion(btVector3(0.f, 1.f, 0.f), glm::radians(45.f)),
-					1000.f);
-}
-
-void GameWorld::create_test_scene()
-{
-	create_ground();
-	
-	unsigned int texture_1 = get_texture_map().diagonal_stripes(100, 100, 0, Color("gold"), Color("blue"));
-	unsigned int texture_2 = get_texture_map().horizontal_stripes(5, Color("grey"), Color("white"));
-	unsigned int texture_3 = get_texture_map().checker_board(5, 5, Color("yellow"), Color("red"));
-
-	ShapeDesc* shape = new BoxShapeDesc(15.f, 3.f, 10.f);
-	shape->add_texture(get_texture_map().diagonal_stripes(160, 32, 3, Color("gold"), Color("red")), 2);
-	shape->add_texture(get_texture_map().checker_board(15, 10, Color("orange"), Color("blue")), 4);
-	createRigidBody(shape,
-					btVector3(0.0f, 3.0f, 0.0f),
-					btQuaternion(btVector3(0.f, 0.f, 1.f), 0.f));
-	// dominoes
-	shape = new BoxShapeDesc(2.f, 5.f, 5.f);
-	shape->add_texture(get_texture_map().solid_color(Color("#8888FF")), 6);
-	createRigidBody(shape,
-					btVector3(-100.0f, 10.0f, 0.0f),
-					btQuaternion(btVector3(0.f, 0.f, 1.f), 0.f), 80.f);
-
-	shape = new BoxShapeDesc(2.f, 5.f, 5.f);
-	shape->add_texture(get_texture_map().solid_color(Color("gold")), 6);
-	createRigidBody(shape,
-					btVector3(-120.0f, 10.0f, 0.0f),
-					btQuaternion(btVector3(0.f, 0.f, 1.f), 0.f), 80.f);
-	
-	shape = new BoxShapeDesc(2.f, 5.f, 5.f);
-	shape->add_texture(get_texture_map().solid_color(Color("orange")), 6);
-	createRigidBody(shape,
-					btVector3(-140.0f, 10.0f, 0.0f),
-					btQuaternion(btVector3(0.f, 0.f, 1.f), 0.f), 80.f);
-	// capsule
-	shape = new CapsuleShapeDesc(5.0f, 5.f);
-	shape->add_texture(get_texture_map().checker_board(10, 10, Color("green"), Color("white")));
-	createRigidBody(shape,
-					btVector3(0.f, 30.0f, 0.0f),
-					btQuaternion(btVector3(1.f, 0.f, 0.f), glm::radians(0.f)),
-					10.f);
-	// cylinder
-	shape = new CylinderShapeDesc(5.0f, 12.f);
-	shape->add_texture(get_texture_map().checker_board(5, 5, Color("red"), Color("white")));
-	shape->add_texture(get_texture_map().checker_board(10, 10, Color("red"), Color("blue")));
-	shape->add_texture(get_texture_map().checker_board(5, 5, Color("blue"), Color("black")));
-	createRigidBody(shape,
-					btVector3(15.1f, 30.0f, 0.0f),
-					btQuaternion(btVector3(1.f, 0.f, 0.f), glm::radians(90.f)),
-					10.f);
-	// cone
-	shape = new ConeShapeDesc(5.0f, 10.0f);
-	shape->add_texture(texture_1);
-	shape->add_texture(texture_2);
-	createRigidBody(shape,
-					btVector3(12.f, 50.0f, 0.0f),
-					btQuaternion(btVector3(1.f, 0.f, 1.f), glm::radians(120.f)),
-					10.f);
-	// sphere
-	shape = new SphereShapeDesc(10.0f);
-	shape->add_texture(get_texture_map().solid_color(Color("#DEB887")));
-	createRigidBody(shape,
-					btVector3(-20.f, 50.0f, 0.0f),
-					btQuaternion(btVector3(0.f, 1.f, 0.f), 0.f),
-					100.f);
-	// pyramid
-	shape = new PyramidShapeDesc(5.f, 15.f, 5.f);
-	shape->add_texture(texture_3);
-	shape->add_texture(texture_2);
-	createRigidBody(shape,
-					btVector3(50.f, 50.0f, 50.f),
-					btQuaternion(btVector3(0.f, 0.f, 1.f), glm::radians(60.f)),
-					10.f);
-	// wedge (e.g. house roof)
-	shape = new WedgeShapeDesc(5.f, 5.f, 5.f, 8.f);
-	shape->add_texture(texture_1);
-	shape->add_texture(texture_2);
-	shape->add_texture(texture_3);
-	createRigidBody(shape,
-					btVector3(50.f, 50.0f, 50.f),
-					btQuaternion(btVector3(0.f, 0.f, 1.f), glm::radians(0.f)),
-					10.f);
-	// wedge (ramp)
-	shape = new WedgeShapeDesc(5.f, 50.f, 10.f, 10.f);
-	shape->add_texture(get_texture_map().solid_color(Color(128, 128, 128)), 3);
-	createRigidBody(shape,
-					btVector3(80.f, 50.0f, -30.f),
-					btQuaternion(btVector3(0.f, 1.f, 1.f), glm::radians(60.f)),
-					100.f);
-
-	ShapeDesc* gear = CreateGearShapeDesc(5.f, 1.f, 10);
-	gear->set_texture(get_texture_map().solid_color(Color(64, 64, 64)));
-	createRigidBody(gear,
-					btVector3(-20.f, 20.0f, -60.f),
-					btQuaternion(btVector3(1.f, 0.f, 0.f), glm::radians(90.f)),
-					1.f);
-
-	create_target(5.f, btVector3(0.f, 80.f, 0.f));
-	create_target(3.f, btVector3(0.f, 80.f, 10.f));
-	create_target(3.f, btVector3(0.f, 80.f, -10.f));
-	create_beach_ball(3.f, btVector3(10.f, 80.f, 0.f));
-	create_beach_ball(3.f, btVector3(-10.f, 80.f, 0.f));
-
-	create_house(btVector3(-100.f, 10.f, -100.f));
+	if (JsonUtil::has_object(doc, "camera")) {
+		const auto& camera = doc["camera"];
+		if (JsonUtil::has_array(camera, "origin")) {
+			std::vector<float> pos = JsonUtil::get_float_array(camera["origin"]);
+			m_camera_pos = btVector3 (pos[0], pos[1], pos[2]);
+		}
+		if (JsonUtil::has_bool(camera, "follow")) {
+			m_camera_follow_player = camera["follow"].GetBool();
+		}
+	}
+	return true;
 }

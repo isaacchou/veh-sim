@@ -1,0 +1,311 @@
+{
+	"version": "1.0",
+	"description": "Scene description",
+	"player": {
+		"vehicle": "tank",
+		"origin": [30, 1.5, -150]
+	},
+	"camera": {
+		"origin": [0, 6, -20],
+		"follow": true
+	},
+	"definitions": [{
+			"beach_ball": {
+				"kind": "sphere",
+				"dimension": [3],
+				"textures": [{
+					"vertical_stripes": [8, "red", "white"]
+				}]
+			}
+		},
+		{
+			"target": {
+				"kind": "sphere",
+				"dimension": [3],
+				"textures": [{
+					"horizontal_stripes": [8, "red", "white"]
+				}]
+			}
+		},
+		{
+			"domino": {
+				"kind": "box",
+				"dimension": [2, 5, 5],
+				"textures": [{
+					"color": "#8888FF",
+					"repeat": 0
+				}]
+			}
+		},
+		{
+			"house": {
+				"kind": "compound",
+				"child": [{
+						"shape": {
+							"kind": "box",
+							"dimension": [10, 10, 30],
+							"textures": [{
+								"color": "#6452C8",
+								"repeat": 6
+							}]
+						},
+						"origin": [0, 0, 0],
+						"rotation": [0, 1, 0, 0]
+					},
+					{
+						"shape": {
+							"kind": "wedge",
+							"description": "roof",
+							"dimension": [12, 5, 30, 30],
+							"textures": [{
+								"color": "#FFC8C8",
+								"repeat": 0
+							}]
+						},
+						"origin": [0, 15, 0],
+						"rotation": [0, 1, 0, 0]
+					},
+					{
+						"shape": {
+							"kind": "compound",
+							"description": "steeple",
+							"child": [{
+									"shape": {
+										"kind": "box",
+										"description": "steeple_box",
+										"dimension": [5, 10, 5],
+										"textures": [{
+											"color": "#96C8C8",
+											"repeat": 5
+										}]
+									},
+									"origin": [0, 0, 0],
+									"rotation": [0, 1, 0, 0]
+								},
+								{
+									"shape": {
+										"kind": "pyramid",
+										"description": "steeple_roof",
+										"dimension": [5, 10, 5],
+										"textures": [{
+											"color": "#96C8C8",
+											"repeat": 5
+										}]
+									},
+									"origin": [0, 20, 0],
+									"rotation": [0, 1, 0, 0]
+								}
+							]
+						},
+						"origin": [0, 15, 0],
+						"rotation": [0, 1, 0, 0]
+					}
+				]
+			}
+		}
+	],
+
+	"scene": [{
+			"shape": {
+				"kind": "ground",
+				"dimension": [1000.0, 1000.0],
+				"textures": [{
+					"checker_board": [100, 100, "white", "grey"]
+				}]
+			},
+			"origin": [0, 0, 0],
+			"rotation": [1, 0, 0, 0]
+		},
+		{
+			"shape": {
+				"kind": "box",
+				"dimension": [15, 3, 10],
+				"textures": [{
+						"diagonal_stripes": [160, 32, 3, "gold", "red"],
+						"repeat": 2
+					},
+					{
+						"checker_board": [15, 10, "orange", "blue"],
+						"repeat": 4
+					}
+				]
+			},
+			"origin": [0, 3, 0],
+			"rotation": [0, 0, 1, 0]
+		},
+		{
+			"macro": "domino",
+			"origin": [-100, 10, 0],
+			"rotation": [0, 0, 1, 0],
+			"mass": 80
+		},
+		{
+			"macro": "domino",
+			"origin": [-120, 10, 0],
+			"rotation": [0, 0, 1, 0],
+			"mass": 80
+		},
+		{
+			"macro": "domino",
+			"origin": [-140, 10, 0],
+			"rotation": [0, 0, 1, 0],
+			"mass": 80
+		},
+		{
+			"shape": {
+				"kind": "capsule",
+				"dimension": [5, 5],
+				"textures": [{
+					"checker_board": [10, 10, "green", "white"]
+				}]
+			},
+			"origin": [0, 30, 0],
+			"rotation": [1, 0, 0, 0],
+			"mass": 10
+		},
+		{
+			"shape": {
+				"kind": "cylinder",
+				"dimension": [5, 12],
+				"textures": [{
+						"checker_board": [5, 5, "red", "white"]
+					},
+					{
+						"checker_board": [10, 10, "red", "blue"]
+					},
+					{
+						"checker_board": [5, 5, "blue", "black"]
+					}
+				]
+			},
+			"origin": [15, 30, 0],
+			"rotation": [1, 0, 0, 90],
+			"mass": 10
+		},
+		{
+			"shape": {
+				"kind": "cone",
+				"dimension": [5, 10],
+				"textures": [{
+						"diagonal_stripes": [100, 100, 0, "gold", "blue"]
+					},
+					{
+						"horizontal_stripes": [5, "grey", "white"]
+					}
+				]
+			},
+			"origin": [12, 50, 0],
+			"rotation": [1, 0, 1, 120],
+			"mass": 10
+		},
+		{
+			"shape": {
+				"kind": "sphere",
+				"dimension": [10],
+				"textures": [{
+					"color": "#DEB887"
+				}]
+			},
+			"origin": [-20, 50, 0],
+			"rotation": [0, 1, 0, 0],
+			"mass": 100
+		},
+		{
+			"shape": {
+				"kind": "pyramid",
+				"dimension": [5, 15, 5],
+				"textures": [{
+						"checker_board": [5, 5, "yellow", "red"]
+					},
+					{
+						"horizontal_stripes": [5, "grey", "white"]
+					}
+				]
+			},
+			"origin": [50, 50, 50],
+			"rotation": [0, 0, 1, 60],
+			"mass": 10
+		},
+		{
+			"shape": {
+				"kind": "wedge",
+				"dimension": [5, 5, 5, 8],
+				"textures": [{
+						"diagonal_stripes": [100, 100, 0, "gold", "blue"]
+					},
+					{
+						"horizontal_stripes": [5, "grey", "white"]
+					},
+					{
+						"checker_board": [5, 5, "yellow", "red"]
+					}
+				]
+			},
+			"origin": [50, 50, 100],
+			"rotation": [0, 0, 1, 0],
+			"mass": 10
+		},
+		{
+			"shape": {
+				"kind": "wedge",
+				"dimension": [5, 50, 10, 10],
+				"textures": [{
+					"color": "#808080",
+					"repeat": 3
+				}]
+			},
+			"origin": [80, 50, -30],
+			"rotation": [0, 1, 1, 60],
+			"mass": 100
+		},
+		{
+			"shape": {
+				"kind": "gear",
+				"dimension": [5, 1, 10],
+				"textures": [{
+					"color": "#404040",
+					"repeat": 0
+				}]
+			},
+			"origin": [-20, 20, -60],
+			"rotation": [1, 0, 0, 90],
+			"mass": 1
+		},
+		{
+			"macro": "target",
+			"origin": [0, 80, 0],
+			"rotation": [1, 0, 0, -90],
+			"mass": 5
+		},
+		{
+			"macro": "target",
+			"origin": [0, 80, 10],
+			"rotation": [1, 0, 0, 0],
+			"mass": 5
+		},
+		{
+			"macro": "target",
+			"origin": [0, 80, -10],
+			"rotation": [1, 0, 0, 90],
+			"mass": 5
+		},
+		{
+			"macro": "beach_ball",
+			"origin": [10, 80, 0],
+			"rotation": [1, 0, 0, 90],
+			"mass": 10
+		},
+		{
+			"macro": "beach_ball",
+			"origin": [-10, 80, 0],
+			"rotation": [1, 0, 0, -90],
+			"mass": 10
+		},
+		{
+			"macro": "house",
+			"origin": [-100, 10, -100],
+			"rotation": [0, 0, 1, 0],
+			"mass": 80
+		}
+	]
+}

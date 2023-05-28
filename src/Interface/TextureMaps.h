@@ -26,7 +26,8 @@ struct Color
 class TextureMap
 {
 protected:
-	enum Type {
+	enum Type 
+	{
 		ImageFile,
 		SolidColor,
 		CheckerBoard,
@@ -43,8 +44,8 @@ protected:
 	};
 	std::map<size_t, unsigned int> m_TextureCache; // maps from hash to id
 	std::map<int, const Image2D> m_ImageMap;	   // maps from id to Image2D
-	int m_next_image_id = 0;
-	size_t row_bytes (size_t width) { return ((((width * 3) + 3) >> 2) << 2); }
+	int m_next_image_id;
+	size_t row_bytes(size_t width) { return ((((width * 3) + 3) >> 2) << 2); }
 	unsigned int create(size_t width, size_t height, unsigned char* data, size_t nbytes);
 
 public:

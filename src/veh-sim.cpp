@@ -7,20 +7,27 @@
 #include "Simulation/GameWorld.h"
 #include "Interface/OpenGLRenderer.h"
 
-int main(void)
+int main(int argc, char *argv[])
 {	
-	OpenGLRenderer renderer;
-	renderer.init("veh-sim");
+	if (argc != 2) {
+		printf("Please specify a scene description json file: veh-sim.exe <scene_desc.json>\n");
+		return 1;
+	}
 	
 	GameWorld game;
-	game.create_scene();
-	game.add_tank(btVector3(30.f, 1.5f, -150.f));
-	game.add_v150(btVector3(-30.f, 1.5f, -150.f));
-
+	if (!game.create_scene_from_file(argv[1]))
+		return 1;
+	
+	OpenGLRenderer renderer;
+	renderer.init("veh-sim");
 	// players and observers can only join after the scene creation
 	// so all texture images can be sent to the local renderer
+	Camera::Type camera = game.should_camera_follow_player() ? Camera::Type::Body : Camera::Type::Drone;
+	btVector3 pos = game.get_camera_initial_pos();
+	renderer.setup_camera(camera, glm::vec3(pos.x(), pos.y(), pos.z()));
 	game.get_scene_observer().connect(&renderer);
 	game.run("veh-sim");
 	
 	renderer.teardown();
+	return 0;
 }

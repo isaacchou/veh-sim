@@ -8,6 +8,7 @@
 
 #include <vector>
 #include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
 
 struct uv_vertex
 {
@@ -70,6 +71,16 @@ public:
 		m_child_desc.push_back({ child, trans });
 	}
 
+	void add_child_shape_desc(ShapeDesc* child, glm::vec3 origin, glm::vec3 rotation, float angle) {
+		glm::mat4 trans(1.f);
+		// translate first then rotate
+		// because translate() moves the object along the axes
+		// and rotate() will change the object's axes
+		trans = glm::translate(trans, origin);
+		trans = glm::rotate(trans, glm::radians(angle), rotation);
+		add_child_shape_desc(child, trans);
+	}
+	
 	const std::vector<child_desc>& get_child_shape_desc() const { return m_child_desc; }
 
 	virtual void set_texture(unsigned int texture) {

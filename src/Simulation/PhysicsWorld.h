@@ -27,7 +27,6 @@ protected:
 
 	SceneObserver m_observer;
 
-	virtual void create_scene() {}
 	virtual void update_scene();
 
 	void teardown();

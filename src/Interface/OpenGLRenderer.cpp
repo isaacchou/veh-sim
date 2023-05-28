@@ -254,16 +254,20 @@ void OpenGLRenderer::teardown()
 
 	glfwTerminate();
 }
+void OpenGLRenderer::setup_camera(Camera::Type which, glm::vec3 pos)
+{
+	m_drone_camera.set_position(pos);
+	m_body_camera.set_position(pos);
+	if (which == Camera::Type::Body) {
+		m_camera = &m_body_camera;
+	} else {
+		// it's better to always have a camera
+		m_camera = &m_drone_camera;
+	}
+}
 
 bool OpenGLRenderer::render(float elapsed_time)
 {	// OpenGL rendering
-	if (!m_camera_ready) {
-		glm::vec3 pos = glm::vec3(m_player_trans * glm::vec4(0.f, 10.f, -200.f, 0.f));
-		m_drone_camera.set_position(pos);
-		m_body_camera.set_camera_pos(glm::vec3(0.f, 6.f, -20.f));
-		m_camera_ready = true;
-	}
-
 	if (m_controller.is_key_pressed(GLFW_KEY_ESCAPE)) {
 		glfwPollEvents();
 		return false;
@@ -271,12 +275,10 @@ bool OpenGLRenderer::render(float elapsed_time)
 	glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-	Camera& camera = m_body_camera;
-		
-	// update camera position and angle and render the scene
-	camera.process_player_input(m_controller);
-	camera.update(m_player_trans);
-	glm::mat4 view = camera.get_view_matrix();
+	// update camera and render the scene
+	m_camera->process_player_input(m_controller);
+	m_camera->update(m_player_trans);
+	glm::mat4 view = m_camera->get_view_matrix();
 	glUniformMatrix4fv(glGetUniformLocation(m_shader_program, "view"), 1, GL_FALSE, &view[0][0]);
 	
 	for (auto& s : m_shapes) {

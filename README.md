@@ -14,16 +14,28 @@ This program lets you drive a vehicle that has wheels or tracks. It is built usi
 
 ## How to play
 
-* **Up arrow** or **W**: move forward
-* **Down arrow** or **S**: move backward
-* **Left arrow** or **A**: turn left
-* **Right arrow** or **D**: turn right
+Vehicle movements:
+
+* **Up arrow**: move forward
+* **Down arrow**: move backward
+* **Left arrow**: turn left
+* **Right arrow**: turn right
 * **Space**: brake
 * **Enter**: fire a shell
 * **Mouse movement**: look around
 * **Right mouse button + mouse movement**: aim
 * **Left mouse button**: fire bullets
 * **ESC**: exit
+
+Camera movements when there is no vehicle in the scene:
+
+* **W**: move forward
+* **S**: move backward
+* **A**: turn left
+* **D**: turn right
+* **Page Up**: increase elevation
+* **Page Up**: decrease elevation
+* **Mouse movement**: look around
 
 ## Resources
 
@@ -32,6 +44,7 @@ This program lets you drive a vehicle that has wheels or tracks. It is built usi
 * [GLFW](https://www.glfw.org/): Library for OpenGL API
 * [glm](https://glm.g-truc.net/): OpenGL Mathematics library
 * [stb](https://github.com/nothings/stb): Single-file public domain libraries for C/C++
+* [rapidjson](https://github.com/Tencent/rapidjson): A JSON parser/generator for C++
 
 ## Feedback
 

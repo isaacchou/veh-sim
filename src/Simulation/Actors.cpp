@@ -317,11 +317,11 @@ void Tank::update(float elapsed_time)
 
 void Tank::process_player_input(Controller& ctlr)
 {
-	if (ctlr.is_key_pressed(GLFW_KEY_LEFT) || ctlr.is_key_pressed(GLFW_KEY_A)) steer_left();
-	else if (ctlr.is_key_pressed(GLFW_KEY_RIGHT) || ctlr.is_key_pressed(GLFW_KEY_D)) steer_right();
+	if (ctlr.is_key_pressed(GLFW_KEY_LEFT)) steer_left();
+	else if (ctlr.is_key_pressed(GLFW_KEY_RIGHT)) steer_right();
 	
-	if (ctlr.is_key_pressed(GLFW_KEY_UP) || ctlr.is_key_pressed(GLFW_KEY_W)) accelarate(5.f);
-	else if (ctlr.is_key_pressed(GLFW_KEY_DOWN) || ctlr.is_key_pressed(GLFW_KEY_S)) accelarate(-5.f);
+	if (ctlr.is_key_pressed(GLFW_KEY_UP)) accelarate(5.f);
+	else if (ctlr.is_key_pressed(GLFW_KEY_DOWN)) accelarate(-5.f);
 	else if (ctlr.is_key_pressed(GLFW_KEY_SPACE)) brake();
 
 	m_gun.process_player_input(ctlr);
