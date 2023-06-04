@@ -34,7 +34,7 @@ Camera movements when there is no vehicle in the scene:
 * **A**: turn left
 * **D**: turn right
 * **Page Up**: increase elevation
-* **Page Up**: decrease elevation
+* **Page Down**: decrease elevation
 * **Mouse movement**: look around
 
 ## Resources

@@ -22,9 +22,11 @@ int main(int argc, char *argv[])
 	renderer.init("veh-sim");
 	// players and observers can only join after the scene creation
 	// so all texture images can be sent to the local renderer
-	Camera::Type camera = game.should_camera_follow_player() ? Camera::Type::Body : Camera::Type::Drone;
-	btVector3 pos = game.get_camera_initial_pos();
-	renderer.setup_camera(camera, glm::vec3(pos.x(), pos.y(), pos.z()));
+	btVector3 eye = game.get_camera_pos();
+	btVector3 target = game.get_camera_target();
+	renderer.setup_camera(game.should_camera_follow_player(),
+						  glm::vec3(eye.x(), eye.y(), eye.z()), 
+						  glm::vec3(target.x(), target.y(), target.z()));
 	game.get_scene_observer().connect(&renderer);
 	game.run("veh-sim");
 	

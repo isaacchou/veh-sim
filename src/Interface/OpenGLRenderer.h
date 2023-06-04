@@ -36,10 +36,7 @@ protected:
 	unsigned int m_shader_program;
 	GLFWController m_controller;
 	glm::mat4 m_player_trans; // transformation from player local to world frame
-
-	BodyCam m_body_camera;
-	DroneCam m_drone_camera;
-	Camera* m_camera; // active camera
+	Camera m_camera;
 
 	int m_next_shape_id;
 	std::map<int, const Shape*> m_shapes;
@@ -49,7 +46,7 @@ protected:
 	unsigned int create_texture(size_t width, size_t height, unsigned char* data);
 
 public:
-	OpenGLRenderer() : m_window(NULL), m_shader_program(0), m_next_shape_id(0), m_camera(&m_drone_camera) {}
+	OpenGLRenderer() : m_window(NULL), m_shader_program(0), m_next_shape_id(0), m_player_trans(1.f) {}
 	virtual ~OpenGLRenderer() { 
 		for (auto& s : m_shapes) delete s.second;
 		teardown(); 
@@ -57,7 +54,7 @@ public:
 	int init(const char* title);
 	void teardown();
 	
-	void setup_camera(Camera::Type which, glm::vec3 pos);
+	void setup_camera(bool follow, const glm::vec3& eye, const glm::vec3& target);
 	Shape* create_shape_from_desc(const ShapeDesc& desc);
 	bool render(float elapsed_time);
 

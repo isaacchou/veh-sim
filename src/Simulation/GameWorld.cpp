@@ -93,6 +93,8 @@ ShapeDesc* GameWorld::create_shape_from_json(const rapidjson::Document& doc, con
 		}
 	}
 	
+	if (!JsonUtil::has_array(shape_obj, "dimension")) return NULL;
+	
 	ShapeDesc* shape = NULL;
 	std::vector<float> dimension = JsonUtil::get_float_array(shape_obj["dimension"]);
 	if (kind == "ground") {
@@ -114,6 +116,7 @@ ShapeDesc* GameWorld::create_shape_from_json(const rapidjson::Document& doc, con
 	} else if (kind == "gear") {
 		shape = CreateGearShapeDesc(dimension[0], dimension[1], (int)dimension[2]);
 	}
+	if (shape == NULL) return NULL;
 
 	if (JsonUtil::has_array(shape_obj, "textures")) {
 		for (const auto& t : shape_obj["textures"].GetArray()) {
@@ -207,11 +210,32 @@ bool GameWorld::create_scene_from_file(const char* filename)
 	if (JsonUtil::has_object(doc, "camera")) {
 		const auto& camera = doc["camera"];
 		if (JsonUtil::has_array(camera, "origin")) {
+			// 'origin' is a required argument
+			// if it is missing, ignore all other settings
 			std::vector<float> pos = JsonUtil::get_float_array(camera["origin"]);
 			m_camera_pos = btVector3 (pos[0], pos[1], pos[2]);
-		}
-		if (JsonUtil::has_bool(camera, "follow")) {
-			m_camera_follow_player = camera["follow"].GetBool();
+			if (JsonUtil::has_bool(camera, "follow")) {
+				m_camera_follow_player = camera["follow"].GetBool();
+			}
+			
+			if (JsonUtil::has_array(camera, "target")) {
+				std::vector<float> target = JsonUtil::get_float_array(camera["target"]);
+				m_camera_target = btVector3 (target[0], target[1], target[2]);
+			} else {
+				// because we need a target so find a reasonable default
+				if (should_camera_follow_player()) {
+					if (m_camera_pos != btVector3(0.f, 0.f, 0.f)){
+						// looat at the center of object
+						m_camera_target = btVector3(0.f, 0.f, 0.f);
+					} else {
+						// loot in the same direction as the vehicle (+z)
+						m_camera_target = btVector3(0.f, 0.f, 1.f);
+					}
+				} else {
+					// look at +z
+					m_camera_target = m_camera_pos + btVector3(0.f, 0.f, 1.f);
+				}
+			}
 		}
 	}
 	return true;
