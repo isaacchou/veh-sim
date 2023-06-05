@@ -52,22 +52,18 @@ public:
 	}
 };
 
-ShapeDesc* GameWorld::create_shape_from_macro(const rapidjson::Document& doc, const char* macro_name)
-{
-	if (JsonUtil::has_array(doc, "definitions")) {
-		for (const auto& def : doc["definitions"].GetArray()) {
-			if (JsonUtil::has_object(def, macro_name)) {
-				return create_shape_from_json(doc, def[macro_name]);
-			}
-		}				
-	}
-	return NULL;
-}
-
 ShapeDesc* GameWorld::create_shape_from_json(const rapidjson::Document& doc, const rapidjson::Value& shape_obj)
-{	
-	if (!JsonUtil::has_string(shape_obj, "kind"))
+{
+	if (shape_obj.IsString()) {
+		const char* macro_name = shape_obj.GetString();
+		if (JsonUtil::has_object(doc, "macros") && 
+			JsonUtil::has_object(doc["macros"], macro_name)) {
+			return create_shape_from_json(doc, doc["macros"][macro_name]);
+		}
 		return NULL;
+	} else if (!shape_obj.IsObject() || !JsonUtil::has_string(shape_obj, "kind")) {
+		return NULL;
+	}
 
 	const std::string kind = shape_obj["kind"].GetString();
 	if (kind == "compound") {
@@ -76,14 +72,16 @@ ShapeDesc* GameWorld::create_shape_from_json(const rapidjson::Document& doc, con
 			compound_shape = new CompoundShapeDesc();
 			for (const auto& child : shape_obj["child"].GetArray()) {
 				ShapeDesc* child_shape = NULL;
-				if (JsonUtil::has_object(child, "shape")) {
+				if (JsonUtil::has_member(child, "shape")) {
 					child_shape = create_shape_from_json(doc, child["shape"]);
-				} else if (JsonUtil::has_string(child, "macro")) {
-					child_shape = create_shape_from_macro(doc, child["macro"].GetString());
 				}
-				if (child_shape != NULL) {
+				if (child_shape != NULL && JsonUtil::has_array(child, "origin")) {
+					// for child shape, 'origin' is required while rotation optional
 					std::vector<float> p = JsonUtil::get_float_array(child["origin"]);
-					std::vector<float> r = JsonUtil::get_float_array(child["rotation"]);
+					std::vector<float> r{ 1.f, 0.f, 0.f, 0.f };
+					if (JsonUtil::has_array(child, "rotation")) {
+						r = JsonUtil::get_float_array(child["rotation"]);
+					}
 					compound_shape->add_child_shape_desc(child_shape, 
 						glm::vec3(p[0], p[1], p[2]),		// origin of child shape in the compound reference frame
 						glm::vec3(r[0], r[1], r[2]), r[3]); // orientation of the child shape
@@ -176,24 +174,29 @@ bool GameWorld::create_scene_from_file(const char* filename)
 		for (const auto& obj : doc["scene"].GetArray()) {
 			if (!obj.IsObject()) continue;
 					
-			ShapeDesc* shape = NULL;
-			if (JsonUtil::has_object(obj, "shape")) {
-				shape = create_shape_from_json(doc, obj["shape"]);
-
-			} else if (JsonUtil::has_string(obj, "macro")) {
-				shape = create_shape_from_macro(doc, obj["macro"].GetString());
-			}
-			if (shape != NULL) {
+			if (JsonUtil::has_member(obj, "shape")) {
+				ShapeDesc* shape = create_shape_from_json(doc, obj["shape"]);
+				if (shape == NULL) continue;
+				// 'origin' is required 
+				if (!JsonUtil::has_array(obj, "origin")) continue;
 				std::vector<float> origin = JsonUtil::get_float_array(obj["origin"]);
-				std::vector<float> rotation = JsonUtil::get_float_array(obj["rotation"]);
+
+				// 'rotation' is optional 
+				btQuaternion rotation(btVector3(1.f, 0.f, 0.f), 0.f);
+				if (JsonUtil::has_array(obj, "rotation")) {
+					std::vector<float> r = JsonUtil::get_float_array(obj["rotation"]);
+					rotation = btQuaternion(btVector3(r[0], r[1], r[2]), glm::radians(r[3]));
+				}	
+				// 'mass' is optional
+				float mass = JsonUtil::has_float(obj, "mass") ? obj["mass"].GetFloat() : 0.f; 
 				createRigidBody(shape,
 								btVector3(origin[0], origin[1], origin[2]),
-								btQuaternion(btVector3(rotation[0], rotation[1], rotation[2]), glm::radians(rotation[3])),
-								JsonUtil::has_float(obj, "mass") ? obj["mass"].GetFloat() : 0.f);
+								rotation, mass);
 			}
 		}
 	}
 
+	// player has to be processed before camera so we know if camera can and should follow the player
 	if (JsonUtil::has_object(doc, "player")) {
 		const auto& player = doc["player"];
 		if (JsonUtil::has_string(player, "vehicle") && JsonUtil::has_array(player, "origin")) {
@@ -209,30 +212,25 @@ bool GameWorld::create_scene_from_file(const char* filename)
 
 	if (JsonUtil::has_object(doc, "camera")) {
 		const auto& camera = doc["camera"];
-		if (JsonUtil::has_array(camera, "origin")) {
-			// 'origin' is a required argument
-			// if it is missing, ignore all other settings
-			std::vector<float> pos = JsonUtil::get_float_array(camera["origin"]);
+		if (JsonUtil::has_array(camera, "eye")) {
+			// 'eye' is required for camera
+			std::vector<float> pos = JsonUtil::get_float_array(camera["eye"]);
 			m_camera_pos = btVector3 (pos[0], pos[1], pos[2]);
+			// 'follow' is optional
 			if (JsonUtil::has_bool(camera, "follow")) {
 				m_camera_follow_player = camera["follow"].GetBool();
 			}
-			
+			// 'target' is optional
 			if (JsonUtil::has_array(camera, "target")) {
 				std::vector<float> target = JsonUtil::get_float_array(camera["target"]);
 				m_camera_target = btVector3 (target[0], target[1], target[2]);
 			} else {
-				// because we need a target so find a reasonable default
-				if (should_camera_follow_player()) {
-					if (m_camera_pos != btVector3(0.f, 0.f, 0.f)){
-						// looat at the center of object
-						m_camera_target = btVector3(0.f, 0.f, 0.f);
-					} else {
-						// loot in the same direction as the vehicle (+z)
-						m_camera_target = btVector3(0.f, 0.f, 1.f);
-					}
+				// find a reasonable default
+				if (should_camera_follow_player() && m_camera_pos != btVector3(0.f, 0.f, 0.f)) {
+					// look at the center of the player vehicle
+					m_camera_target = btVector3(0.f, 0.f, 0.f);
 				} else {
-					// look at +z
+					// look in +z direction
 					m_camera_target = m_camera_pos + btVector3(0.f, 0.f, 1.f);
 				}
 			}

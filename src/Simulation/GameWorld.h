@@ -17,7 +17,6 @@ protected:
 	btVector3 m_camera_pos, m_camera_target;
 	bool m_camera_follow_player;
 
-	ShapeDesc* create_shape_from_macro(const rapidjson::Document& doc, const char* macro_name);
 	ShapeDesc* create_shape_from_json(const rapidjson::Document& doc, const rapidjson::Value& shape_obj);
 
 	void add_actor(Actor* actor, const btVector3& pos) { 
