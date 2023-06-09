@@ -2,15 +2,25 @@
 
 ![App screen](app_screen.png "App screen")
 
-This program lets you drive a vehicle that has wheels or tracks. It is built using [Bullet Physics SDK](https://github.com/bulletphysics/bullet3) and OpenGL.
+This simulation program lets you build a 3D world and drive a vehicle around to explore it.
 
 ## How to build
 
-1. You need Visual Studio 2022 to build. Get the community edition [here](https://visualstudio.microsoft.com/thank-you-downloading-visual-studio/?sku=Community&channel=Release&version=VS2022&source=VSLandingPage&cid=2030&passive=false).
+1. You need Visual Studio 2022 to build the simulation program. Get the community edition [here](https://visualstudio.microsoft.com/thank-you-downloading-visual-studio/?sku=Community&channel=Release&version=VS2022&source=VSLandingPage&cid=2030&passive=false).
 
 2. Run the [bootstrap.cmd](bootstrap.cmd) script in a command prompt window from the top of your working tree to download and build all third party libraries. A ***third_party*** directory will be created above the working directory so it can be shared among multiple projects.
 
 3. Open [veh-sim.sln](veh-sim.sln), build solution and run.
+
+4. Run from the Windows command prompt:
+
+```bat
+cd <top of your local working directory>
+cd x64\releases
+veh-sim.exe ..\..\scene_desc.json
+```
+
+5. Read the [documentation](docs/scene_desc.md) and see the [examples](docs/examples.json) on how to build your own scene.
 
 ## How to play
 
@@ -27,12 +37,12 @@ Vehicle movements:
 * **Left mouse button**: fire bullets
 * **ESC**: exit
 
-Camera movements when there is no vehicle in the scene:
+Camera movements when it is not following the player vehicle:
 
 * **W**: move forward
 * **S**: move backward
-* **A**: turn left
-* **D**: turn right
+* **A**: side step left
+* **D**: side step right
 * **Page Up**: increase elevation
 * **Page Down**: decrease elevation
 * **Mouse movement**: look around
@@ -45,6 +55,8 @@ Camera movements when there is no vehicle in the scene:
 * [glm](https://glm.g-truc.net/): OpenGL Mathematics library
 * [stb](https://github.com/nothings/stb): Single-file public domain libraries for C/C++
 * [rapidjson](https://github.com/Tencent/rapidjson): A JSON parser/generator for C++
+* [JSON](https://www.json.org/): Introduction to JSON 
+* [JSON lint](https://jsonlint.com/): JSON validator and reformatter
 
 ## Feedback
 

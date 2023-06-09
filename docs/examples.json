@@ -1,0 +1,167 @@
+{
+	"description": "examples for the doc",
+	"player": {
+		"vehicle": "tank-no-player",
+		"origin": [0, 1.5, 30]
+	},
+	"camera": {
+		"eye": [20, 10, 30],
+		"target": [0, 0, 0],
+		"follow": false
+	},
+	"macros": {
+		"axis": {
+			"kind": "compound",
+			"child": [{
+					"shape": {
+						"kind": "cylinder",
+						"dimension": [0.2, 5],
+						"textures": [{
+							"color": "red",
+							"repeat": 0
+						}]
+					},
+					"origin": [0, 5, 0]
+				},
+				{
+					"shape": {
+						"kind": "cone",
+						"dimension": [0.4, 0.8],
+						"textures": [{
+							"color": "red",
+							"repeat": 0
+						}]
+					},
+					"origin": [0, 10.4, 0]
+				}
+			]
+		},
+		"axes": {
+			"kind": "compound",
+			"child": [{
+					"shape": "axis",
+					"description": "y-axis",
+					"origin": [0, 0, 0],
+					"rotation": [1, 0, 0, 0]
+				},
+				{
+					"shape": "axis",
+					"description": "x-axis",
+					"origin": [0, 0, 0],
+					"rotation": [0, 0, -1, 90]
+				},
+				{
+					"shape": "axis",
+					"description": "z-axis points toward the camera",
+					"origin": [0, 0, 0],
+					"rotation": [1, 0, 0, 90]
+				}
+			]
+		}
+	},
+	"scene": [{
+			"shape": {
+				"kind": "ground-not-use",
+				"dimension": [1000.0, 1000.0],
+				"textures": [{
+					"checker_board": [100, 100, "white", "grey"]
+				}]
+			},
+			"origin": [0, 0, 0]
+		},
+		{
+			"shape": "axes",
+			"origin": [0, 0, 0],
+			"rotation": [1, 0, 0, 0]
+		},
+		{
+			"shape": {
+				"kind": "sphere",
+				"dimension": [5],
+				"textures": [{
+					"color": "grey",
+					"repeat": 0
+				}]
+			},
+			"origin": [0, 0, 0]
+		},
+		{
+			"shape": {
+				"kind": "pyramid",
+				"dimension": [5, 5, 5],
+				"textures": [{
+					"color": "grey",
+					"repeat": 0
+				}]
+			},
+			"origin": [16, 0, 0]
+		},
+		{
+			"shape": {
+				"kind": "capsule",
+				"dimension": [5, 10],
+				"textures": [{
+					"color": "grey",
+					"repeat": 0
+				}]
+			},
+			"origin": [32, 0, 0]
+		},
+		{
+			"shape": {
+				"kind": "cone",
+				"dimension": [5, 10],
+				"textures": [{
+					"color": "grey",
+					"repeat": 0
+				}]
+			},
+			"origin": [48, 0, 0]
+		},
+		{
+			"shape": {
+				"kind": "cylinder",
+				"dimension": [5, 10],
+				"textures": [{
+					"color": "grey",
+					"repeat": 0
+				}]
+			},
+			"origin": [64, 0, 0]
+		},
+		{
+			"shape": {
+				"kind": "box",
+				"dimension": [5, 5, 5],
+				"textures": [{
+					"color": "gray",
+					"repeat": 0
+				}]
+			},
+			"origin": [-16, 0, 0],
+			"rotation": [1, 0, 0, 0]
+		},
+		{
+			"shape": {
+				"kind": "wedge",
+				"dimension": [5, 5, 5, 10],
+				"textures": [{
+					"color": "grey",
+					"repeat": 0
+				}]
+			},
+			"origin": [-32, 0, 0]
+		},
+		{
+			"shape": {
+				"kind": "gear",
+				"dimension": [5, 2, 12],
+				"textures": [{
+					"color": "grey",
+					"repeat": 0
+				}]
+			},
+			"origin": [-48, 0, 0]
+		}
+	]
+}

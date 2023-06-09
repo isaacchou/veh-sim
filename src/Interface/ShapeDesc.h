@@ -228,7 +228,7 @@ public:
 			// side faces (0 - 11)
 			0, 1, 2, 0, 2, 3, 0, 3, 4, 0, 4, 1, 
 			// bottom face (12 - 17)
-			1, 2, 3, 3, 4, 1 };
+			1, 4, 3, 3, 2, 1 };
 		for (int i : v) {
 			triangles.push_back(m_vertices[i]);
 		}

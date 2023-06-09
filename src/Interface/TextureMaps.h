@@ -61,8 +61,8 @@ public:
 	// 0: top right to bottom left
 	// 1: top left to bottom right
 	// 2: top center to bottom left and right
-	// 2: bottom center to top left and right
-	unsigned int diagonal_stripes(size_t width, size_t height, int stype, const Color& clr_1, const Color& clr_2);
+	// 3: bottom center to top left and right
+	unsigned int diagonal_stripes(size_t width, size_t height, int style, const Color& clr_1, const Color& clr_2);
 	unsigned int vertical_stripes(size_t height, const Color& clr_1, const Color& clr_2);
 	unsigned int horizontal_stripes(size_t width, const Color& clr_1, const Color& clr_2);
 };
