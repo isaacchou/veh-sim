@@ -73,6 +73,7 @@ A JSON array containing one or more texture objects. A texture object has the fo
 |file|`pathname to an image file (.jpg, .png, etc.)`|
 
 * **color** can be either HTML hex color code `("#DEB887")` or color name `("red")`
+* **pathname** to the image file is relative to the JSON file where the texture is defined
 * **diagonal_stripes** has these styles:
     * `0: top right to bottom left`
     * `1: top left to bottom right`

@@ -51,6 +51,7 @@
       <ConformanceMode>true</ConformanceMode>
       <AdditionalIncludeDirectories>$(SolutionDir)..\third_party\bullet3\include\bullet;$(SolutionDir)..\third_party\glfw\include;$(SolutionDir)..\third_party\glfw-src\deps;$(SolutionDir)..\third_party\glm;$(SolutionDir)..\third_party\rapidjson;$(SolutionDir)..\third_party\stb;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
+      <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -69,6 +70,7 @@
       <ConformanceMode>true</ConformanceMode>
       <AdditionalIncludeDirectories>$(SolutionDir)..\third_party\bullet3\include\bullet;$(SolutionDir)..\third_party\glfw\include;$(SolutionDir)..\third_party\glfw-src\deps;$(SolutionDir)..\third_party\glm;$(SolutionDir)..\third_party\rapidjson;$(SolutionDir)..\third_party\stb;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+      <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>

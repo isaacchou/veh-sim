@@ -6,6 +6,7 @@
  */
 #include <array>
 #include <cstdio>
+#include <filesystem>
 #include <rapidjson/filereadstream.h>
 #include "GameWorld.h"
 
@@ -52,16 +53,84 @@ public:
 	}
 };
 
-ShapeDesc* GameWorld::create_shape_from_json(const rapidjson::Document& doc, const rapidjson::Value& shape_obj)
+class JsonFile
+{
+protected:
+	rapidjson::Document m_doc;
+	std::filesystem::path m_filename;
+	std::vector<JsonFile*> m_imports;
+
+public:
+	JsonFile(const char* filename) : m_filename(filename) {
+		if (m_filename.is_relative()) {
+			// make it absolute so we can set the current path 
+			// for subsequent path resolution
+			m_filename = std::filesystem::absolute(m_filename);
+		}
+	}
+	virtual ~JsonFile() { 
+		for (auto& i : m_imports) {
+			delete i;
+		}
+	}
+
+	bool parse() {
+		FILE* f = std::fopen(m_filename.string().c_str(), "rb");
+		if (f == 0) {
+			std::string msg = "failed to open scene file \'";
+			msg += m_filename.string();
+			msg += "\'";
+			std::perror(msg.c_str());
+			return false;
+		}
+		std::array<char, 4096> buf;
+		rapidjson::FileReadStream stream(f, buf.data(), buf.size());
+		m_doc.ParseStream(stream);
+		fclose(f);
+
+		if (JsonUtil::has_array(m_doc, "imports")) {
+			// the import file paths are relative to the current folder
+			std::filesystem::path cwd = std::filesystem::current_path();
+			std::filesystem::current_path(m_filename.parent_path());
+			for (const auto& i : m_doc["imports"].GetArray()) {
+				if (!i.IsString()) continue;
+
+				JsonFile* json = new JsonFile(i.GetString());
+				if (json->parse()) {
+					m_imports.push_back(json);
+				} else {
+					// failed to prase the json file					
+					delete json;
+				}
+			}
+			std::filesystem::current_path(cwd);
+		}
+		return true;
+	}
+	const rapidjson::Value& get_doc() { return m_doc; }
+	ShapeDesc* create_shape(GameWorld& world, const rapidjson::Value& shape_obj);
+};
+
+ShapeDesc* JsonFile::create_shape(GameWorld& world, const rapidjson::Value& shape_obj)
 {
 	if (shape_obj.IsString()) {
+		// possible macro
 		const char* macro_name = shape_obj.GetString();
-		if (JsonUtil::has_object(doc, "macros") && 
-			JsonUtil::has_object(doc["macros"], macro_name)) {
-			return create_shape_from_json(doc, doc["macros"][macro_name]);
+		if (JsonUtil::has_object(m_doc, "macros") && 
+			JsonUtil::has_object(m_doc["macros"], macro_name)) {
+			// found the macro in the current file
+			return create_shape(world, m_doc["macros"][macro_name]);
+		} else {
+			// cannot resolve the macro, try imports
+			for (JsonFile* f : m_imports) {
+				ShapeDesc* shape = f->create_shape(world, shape_obj);
+				if (shape != NULL) return shape; // resolved with the import
+			}
+			// cannot resolve the macro with imports
+			return NULL;
 		}
-		return NULL;
 	} else if (!shape_obj.IsObject() || !JsonUtil::has_string(shape_obj, "kind")) {
+		// not a valid shape descriptor
 		return NULL;
 	}
 
@@ -73,7 +142,7 @@ ShapeDesc* GameWorld::create_shape_from_json(const rapidjson::Document& doc, con
 			for (const auto& child : shape_obj["child"].GetArray()) {
 				ShapeDesc* child_shape = NULL;
 				if (JsonUtil::has_member(child, "shape")) {
-					child_shape = create_shape_from_json(doc, child["shape"]);
+					child_shape = create_shape(world, child["shape"]);
 				}
 				if (child_shape != NULL && JsonUtil::has_array(child, "origin")) {
 					// for child shape, 'origin' is required while rotation optional
@@ -117,28 +186,32 @@ ShapeDesc* GameWorld::create_shape_from_json(const rapidjson::Document& doc, con
 	if (shape == NULL) return NULL;
 
 	if (JsonUtil::has_array(shape_obj, "textures")) {
+		// all texture file pathnames are relative to the current folder
+		std::filesystem::path cwd = std::filesystem::current_path();
+		std::filesystem::current_path(m_filename.parent_path());
+		TextureMap& txtr_map = world.get_texture_map();
 		for (const auto& t : shape_obj["textures"].GetArray()) {
 			unsigned int texture = 0;
 			if (JsonUtil::has_member(t, "file")) {
-				texture = get_texture_map().from_file(t["file"].GetString());
+				texture = txtr_map.from_file(t["file"].GetString());
 			} else if (JsonUtil::has_member(t, "color")) {
 				std::string clr = t["color"].GetString();
-				texture = get_texture_map().solid_color(clr.c_str());
+				texture = txtr_map.solid_color(clr.c_str());
 			} else if (JsonUtil::has_member(t, "checker_board")) {
 				const rapidjson::Value& p = t["checker_board"].GetArray();
-				texture = get_texture_map().checker_board(p[0].GetInt(), p[1].GetInt(), 
+				texture = txtr_map.checker_board(p[0].GetInt(), p[1].GetInt(), 
 					Color(p[2].GetString()), Color(p[3].GetString()));
 			} else if (JsonUtil::has_member(t, "diagonal_stripes")) {
 				const rapidjson::Value& p = t["diagonal_stripes"].GetArray();
-				texture = get_texture_map().diagonal_stripes(p[0].GetInt(), p[1].GetInt(), p[2].GetInt(), 
+				texture = txtr_map.diagonal_stripes(p[0].GetInt(), p[1].GetInt(), p[2].GetInt(), 
 					Color(p[3].GetString()), Color(p[4].GetString()));
 			} else if (JsonUtil::has_member(t, "vertical_stripes")) {
 				const rapidjson::Value& p = t["vertical_stripes"].GetArray();
-				texture = get_texture_map().vertical_stripes(p[0].GetInt(), 
+				texture = txtr_map.vertical_stripes(p[0].GetInt(), 
 					Color(p[1].GetString()), Color(p[2].GetString()));
 			} else if (JsonUtil::has_member(t, "horizontal_stripes")) {
 				const rapidjson::Value& p = t["horizontal_stripes"].GetArray();
-				texture = get_texture_map().horizontal_stripes(p[0].GetInt(), 
+				texture = txtr_map.horizontal_stripes(p[0].GetInt(), 
 					Color(p[1].GetString()), Color(p[2].GetString()));
 			}
 
@@ -149,6 +222,7 @@ ShapeDesc* GameWorld::create_shape_from_json(const rapidjson::Document& doc, con
 			} else {
 				shape->add_texture(texture, repeat);
 			}
+			std::filesystem::current_path(cwd);
 		}
 	}
 	return shape;
@@ -156,26 +230,16 @@ ShapeDesc* GameWorld::create_shape_from_json(const rapidjson::Document& doc, con
 
 bool GameWorld::create_scene_from_file(const char* filename)
 {
-	std::array<char, 4096> buf;
-	FILE* f = std::fopen(filename, "rb");
-	if (f == 0) {
-		std::string msg = "failed to open scene file \'";
-		msg += filename;
-		msg += "\'";
-		std::perror(msg.c_str());
-		return false;
-	}
-	rapidjson::FileReadStream stream(f, buf.data(), buf.size());
-	rapidjson::Document doc;
-	doc.ParseStream(stream);
-	fclose(f);
+	JsonFile json(filename);
+	if (!json.parse()) return false;
 
+	const rapidjson::Value& doc = json.get_doc();
 	if (JsonUtil::has_array(doc, "scene")) {
 		for (const auto& obj : doc["scene"].GetArray()) {
 			if (!obj.IsObject()) continue;
 					
 			if (JsonUtil::has_member(obj, "shape")) {
-				ShapeDesc* shape = create_shape_from_json(doc, obj["shape"]);
+				ShapeDesc* shape = json.create_shape(*this, obj["shape"]);
 				if (shape == NULL) continue;
 				// 'origin' is required 
 				if (!JsonUtil::has_array(obj, "origin")) continue;

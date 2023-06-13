@@ -16,7 +16,7 @@ This simulation program lets you build a 3D world and drive a vehicle around to 
 
 ```bat
 cd <top of your local working directory>
-cd x64\releases
+cd x64\Release
 veh-sim.exe ..\..\scene_desc.json
 ```
 

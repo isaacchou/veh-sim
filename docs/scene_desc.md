@@ -1,6 +1,6 @@
 # Scene Descriptor
 
-The scene descriptor is a [JSON file](#about-json) that contains information about the camera, the player and things that you can build and place in the scene called **[rigid bodies](#rigid-body)**. The scene descriptor recognizes these members to create the scene: **[camera](#camera)**, **[player](#player)**, **[macros](#macros)**, and **[scene](#scene)**. Other members of the scene descriptor are ignored and can be used as annotations.
+The scene descriptor is a [JSON file](#about-json) that contains information about the camera, the player and things that you can build and place in the scene called **[rigid bodies](#rigid-body)**. The scene descriptor recognizes these members to create the scene: **[camera](#camera)**, **[player](#player)**, **[macros](#macros)**, **[imports](#imports)** and **[scene](#scene)**. Other members of the scene descriptor are ignored and can be used as annotations.
 
 ## **rigid body**
 
@@ -52,7 +52,17 @@ Example:
 
 ## **macros**
 
-A JSON object that contains one or more named **[shape descriptors](shape_desc.md)** that can be referened elsewhere in the file. 
+A JSON object that contains one or more named **[shape descriptors](shape_desc.md)** that can be referened elsewhere in the file.
+
+## **imports**
+
+A JSON array that contains **pathnames** to other JSON files whose **macros** will be imported and added to the current **macros** to extend the available shape descritors that can be referenced. The **pathnames** are JSON string values that are relative to the current JSON file.
+
+Example:
+
+```json
+"imports": ["objects/building.json", "docs/examples.json"]
+```
 
 ## **scene**
 
