@@ -23,24 +23,24 @@ Color::Color(const char* html_color_code)
 {
 	std::string s = html_color_code;
 	if (s[0] != '#') {
-		std::transform(s.begin(), s.end(), s.begin(), std::tolower);
-		if (0 == s.compare("black")) {
+		std::transform(s.begin(), s.end(), s.begin(), [](unsigned char c){ return std::tolower(c); });
+		if (s == "black") {
 			s = "#000000";
-		} else if (0 == s.compare("white")) {
+		} else if (s == "white") {
 			s = "#FFFFFF";
-		} else if (0 == s.compare("red")) {
+		} else if (s == "red") {
 			s = "#FF0000";
-		} else if (0 == s.compare("green")) {
+		} else if (s == "green") {
 			s = "#00FF00";
-		} else if (0 == s.compare("blue")) {
+		} else if (s == "blue") {
 			s = "#0000FF";
-		} else if (0 == s.compare("gray") || 0 == s.compare("grey")) {
+		} else if (s == "gray" || s == "grey") {
 			s = "#808080";
-		} else if (0 == s.compare("yellow")) {
+		} else if (s == "yellow") {
 			s = "#FFFF00";
-		} else if (0 == s.compare("gold")) {
+		} else if (s == "gold") {
 			s = "#FFD700";
-		} else if (0 == s.compare("orange")) {
+		} else if (s == "orange") {
 			s = "#FFA500";
 		} else {
 			s = "#000000";

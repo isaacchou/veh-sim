@@ -106,6 +106,19 @@ if exist rapidjson (
     popd
 )
 
+if exist boost_1_82_0 (
+    echo ===
+    echo === Skipping boost
+    echo ===
+) else (
+    echo ===
+    echo === Setting up boost
+    echo ===
+    curl -LO https://boostorg.jfrog.io/artifactory/main/release/1.82.0/source/boost_1_82_0.zip
+    tar xf boost_1_82_0.zip
+    del boost_1_82_0.zip
+)
+
 popd
 
 echo ===

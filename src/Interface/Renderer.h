@@ -18,6 +18,7 @@ public:
 	virtual int how_many_controllers() = 0;
 	virtual Controller& get_controller(int which) = 0;
 	virtual void set_player_transform(int which, const glm::mat4& trans) = 0;
+	virtual void setup_camera(bool follow, const glm::vec3& eye, const glm::vec3& target) = 0;
 
 	virtual void add_shape(int id, const ShapeDesc& shape_desc, const glm::mat4& trans) = 0;
 	virtual void update_shape(int id, const glm::mat4& trans) = 0;

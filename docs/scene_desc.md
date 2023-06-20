@@ -56,7 +56,7 @@ A JSON object that contains one or more named **[shape descriptors](shape_desc.m
 
 ## **imports**
 
-A JSON array that contains **pathnames** to other JSON files whose **macros** will be imported and added to the current **macros** to extend the available shape descritors that can be referenced. The **pathnames** are JSON string values that are relative to the current JSON file.
+A JSON array that contains **pathnames** to other JSON files whose **macros** will be imported and added to the current **macros** to extend the available **[shape descriptors](shape_desc.md)** that can be referenced. The **pathnames** are JSON string values that are relative to the current JSON file.
 
 Example:
 

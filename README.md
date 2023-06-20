@@ -2,25 +2,31 @@
 
 ![App screen](app_screen.png "App screen")
 
-This simulation program lets you build a 3D world and drive a vehicle around to explore it.
+This simulation program lets you build a 3D world and drive a vehicle to explore it.
 
-## How to build
+## How to build and run
 
-1. You need Visual Studio 2022 to build the simulation program. Get the community edition [here](https://visualstudio.microsoft.com/thank-you-downloading-visual-studio/?sku=Community&channel=Release&version=VS2022&source=VSLandingPage&cid=2030&passive=false).
+1. Visual Studio 2022 is needed to build this program. Get the community edition [here](https://visualstudio.microsoft.com/thank-you-downloading-visual-studio/?sku=Community&channel=Release&version=VS2022&source=VSLandingPage&cid=2030&passive=false).
 
-2. Run the [bootstrap.cmd](bootstrap.cmd) script in a command prompt window from the top of your working tree to download and build all third party libraries. A ***third_party*** directory will be created above the working directory so it can be shared among multiple projects.
+2. Run [bootstrap.cmd](bootstrap.cmd) in a command prompt window from the top of the working tree. The script downloads necessary libraries into the ***third_party*** directory above the working tree so that it can be shared among multiple projects.
 
-3. Open [veh-sim.sln](veh-sim.sln), build solution and run.
+3. Open [veh-sim.sln](veh-sim.sln) in Visual Studio, build solution and run. There are other ways to run:
 
-4. Run from the Windows command prompt:
+    * Run from command prompt by supplying the path to the scene file as argument: 
+        ```
+        cd <working tree>\x64\Release
+        veh-sim.exe ..\..\scene_desc.json
+        ```
+    * Run as a game server by specifying the network port number in addition to the path of the scene file:  
+        ```
+        veh-sim.exe server=<port> ..\..\scene_desc.json
+        ```
+    * To join a game, specify any IPv4 address or network name of the server and the port number:
+        ```
+        veh-sim.exe join=<server>:<port>
+        ```
 
-```bat
-cd <top of your local working directory>
-cd x64\Release
-veh-sim.exe ..\..\scene_desc.json
-```
-
-5. Read the [documentation](docs/scene_desc.md) and see the [examples](docs/examples.json) on how to build your own scene.
+4. Read the [documentation](docs/scene_desc.md) and [examples](docs/examples.json) on how to build your own scene.
 
 ## How to play
 

@@ -98,5 +98,8 @@
     <ClInclude Include="src\Simulation\PhysicsWorld.h">
       <Filter>Source Files\Simulation</Filter>
     </ClInclude>
+    <ClInclude Include="src\PlayerProtocol.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>
