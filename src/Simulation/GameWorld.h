@@ -6,7 +6,6 @@
  */
 #pragma once
 
-#include <rapidjson/document.h>
 #include "PhysicsWorld.h"
 #include "Actors.h" 
 

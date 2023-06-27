@@ -47,9 +47,9 @@
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>_WIN32_WINNT=0x0601;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>BOOST_ALL_NO_LIB;_WIN32_WINNT=0x0601;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(SolutionDir)..\third_party\boost_1_82_0;$(SolutionDir)..\third_party\bullet3\include\bullet;$(SolutionDir)..\third_party\glfw\include;$(SolutionDir)..\third_party\glfw-src\deps;$(SolutionDir)..\third_party\glm;$(SolutionDir)..\third_party\rapidjson;$(SolutionDir)..\third_party\stb;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)..\third_party\boost_1_82_0;$(SolutionDir)..\third_party\bullet3\include\bullet;$(SolutionDir)..\third_party\glfw\include;$(SolutionDir)..\third_party\glfw-src\deps;$(SolutionDir)..\third_party\glm;$(SolutionDir)..\third_party\stb;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <LanguageStandard>stdcpp20</LanguageStandard>
     </ClCompile>
@@ -66,9 +66,9 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>_WIN32_WINNT=0x0601;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>BOOST_ALL_NO_LIB;_WIN32_WINNT=0x0601;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(SolutionDir)..\third_party\boost_1_82_0;$(SolutionDir)..\third_party\bullet3\include\bullet;$(SolutionDir)..\third_party\glfw\include;$(SolutionDir)..\third_party\glfw-src\deps;$(SolutionDir)..\third_party\glm;$(SolutionDir)..\third_party\rapidjson;$(SolutionDir)..\third_party\stb;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)..\third_party\boost_1_82_0;$(SolutionDir)..\third_party\bullet3\include\bullet;$(SolutionDir)..\third_party\glfw\include;$(SolutionDir)..\third_party\glfw-src\deps;$(SolutionDir)..\third_party\glm;$(SolutionDir)..\third_party\stb;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <LanguageStandard>stdcpp20</LanguageStandard>
     </ClCompile>
@@ -102,7 +102,6 @@
     <ClInclude Include="src\Interface\Renderer.h" />
     <ClInclude Include="src\Interface\SceneObserver.h" />
     <ClInclude Include="src\Interface\Shaders.h" />
-    <ClInclude Include="src\Interface\ShapeDesc.h" />
     <ClInclude Include="src\Interface\Shapes.h" />
     <ClInclude Include="src\Interface\TextureMaps.h" />
     <ClInclude Include="src\PlayerProtocol.h" />

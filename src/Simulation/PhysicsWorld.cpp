@@ -32,49 +32,45 @@ PhysicsWorld::~PhysicsWorld()
 	collisionShapes.clear();
 }
 
-btCollisionShape* create_collision_shape(const ShapeDesc& shape)
+btCollisionShape* create_collision_shape(const Shape& shape)
 {
-	if (shape.m_type == ShapeDesc::Type::Compound) {
+	if (shape.get_type() == Shape::Type::Compound) {
 		btCompoundShape* collision_shape = new btCompoundShape();
-		const CompoundShapeDesc& compound_shape_desc = dynamic_cast<const CompoundShapeDesc&>(shape);
-		for (auto& child : compound_shape_desc.get_child_shape_desc()) {
+		const CompoundShape& compound_shape = dynamic_cast<const CompoundShape&>(shape);
+		for (auto& child : compound_shape.get_child_shapes()) {
 			btTransform trans;
-			trans.setFromOpenGLMatrix(&child.m_trans[0][0]);
-			collision_shape->addChildShape(trans, create_collision_shape(*child.m_desc));
+			trans.setFromOpenGLMatrix(&child.trans[0][0]);
+			collision_shape->addChildShape(trans, create_collision_shape(*child.shape));
 		}
 		return collision_shape;
 	}
 	
 	btCollisionShape* collision_shape = NULL;
-	switch (shape.m_type) {
-		case ShapeDesc::Type::Ground:
+	switch (shape.get_type()) {
+		case Shape::Type::Ground:
 			collision_shape = new btStaticPlaneShape(btVector3(0.f, 1.f, 0.f), 0);
 		break;
-		case ShapeDesc::Type::Box:
-			collision_shape = new btBoxShape(btVector3(shape.m_param[0], shape.m_param[1], shape.m_param[2]));
+		case Shape::Type::Box:
+			collision_shape = new btBoxShape(btVector3(shape.param()[0], shape.param()[1], shape.param()[2]));
 		break;
-		case ShapeDesc::Type::Sphere:
-			collision_shape = new btSphereShape(shape.m_param[0]);
+		case Shape::Type::Sphere:
+			collision_shape = new btSphereShape(shape.param()[0]);
 		break;
-		case ShapeDesc::Type::Cylinder:
-			collision_shape = new btCylinderShape(btVector3(shape.m_param[0], shape.m_param[1], shape.m_param[0]));
+		case Shape::Type::Cylinder:
+			collision_shape = new btCylinderShape(btVector3(shape.param()[0], shape.param()[1], shape.param()[0]));
 		break;
-		case ShapeDesc::Type::Capsule:
-			collision_shape = new btCapsuleShape(shape.m_param[0], shape.m_param[1]);
+		case Shape::Type::Capsule:
+			collision_shape = new btCapsuleShape(shape.param()[0], shape.param()[1]);
 		break;
-		case ShapeDesc::Type::Cone:
-			collision_shape = new btConeShape(shape.m_param[0], shape.m_param[1]);
+		case Shape::Type::Cone:
+			collision_shape = new btConeShape(shape.param()[0], shape.param()[1]);
 		break;
-		case ShapeDesc::Type::Pyramid:
-		case ShapeDesc::Type::Wedge:
-		case ShapeDesc::Type::V150:
+		case Shape::Type::Convex:
 		{
-			const ConvexShapeDesc& convex_shape = dynamic_cast<const ConvexShapeDesc&>(shape);
-			std::vector<glm::vec3> vertices;
-			convex_shape.get_vertices(vertices);
+			const ConvexShape& convex_shape = dynamic_cast<const ConvexShape&>(shape);
 			btConvexHullShape* convex_hull_shape = new btConvexHullShape ();
-			for (const glm::vec3& v : vertices) {
-				convex_hull_shape->addPoint (btVector3 (v.x, v.y, v.z));
+			for (auto& v : convex_shape.get_vertices()) {
+				convex_hull_shape->addPoint(btVector3 (v.x, v.y, v.z));
 			}
 			collision_shape = convex_hull_shape;
 		}
@@ -85,10 +81,10 @@ btCollisionShape* create_collision_shape(const ShapeDesc& shape)
 	return collision_shape;
 }
 
-btRigidBody* PhysicsWorld::createRigidBody(ShapeDesc* shape,
+btRigidBody* PhysicsWorld::createRigidBody(const Shape& shape,
 	btVector3 origin, btQuaternion rotation, btScalar mass)
 {
-	btCollisionShape* collision_shape = create_collision_shape((const ShapeDesc&)*shape);
+	btCollisionShape* collision_shape = create_collision_shape(shape);
 	collisionShapes.push_back(collision_shape);
 
 	btVector3 localInertia(0, 0, 0);
@@ -106,7 +102,7 @@ btRigidBody* PhysicsWorld::createRigidBody(ShapeDesc* shape,
 	
 	glm::mat4 m;
 	trans.getOpenGLMatrix(&m[0][0]);
-	int id = m_observer.add_shape(shape, m);
+	int id = m_observer.add_shape(&shape, m);
 	collision_shape->setUserIndex(id);
 	return body;
 }

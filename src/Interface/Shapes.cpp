@@ -10,24 +10,70 @@
 #include "Shapes.h"
 #include "../Utils.h"
 
-void Shape::set_texture(unsigned int texture)
-{	// a (default) texture for all faces
-	m_default_texture = texture;
+std::string to_string(const glm::mat4& m)
+{
+	std::string s;
+	int n = sizeof(m) / sizeof(float);
+	const float* p = &m[0][0];
+	for (int i = 0; i < n; i++) {
+		if (i != 0) s += ",";
+		s += std::to_string(*p++);
+	}
+	return std::move(s);
 }
 
-void CompoundShape::create_mesh()
+std::string CompoundShape::to_json(const glm::mat4& trans) const
 {
-	for (child_shape& child : m_child_shapes) {
-		child.shape->create_mesh();
+	std::string json = "{\"child\":[";
+	bool first = true;
+	for (const child_shape& child : m_child_shapes) {
+		if (!first) json += ",";
+		json += child.shape->to_json(child.trans);
+		first = false;
 	}
+	json += "],\"trans\":[" + to_string(trans) + "]}";
+	return std::move(json);
 }
 
-void CompoundShape::draw(unsigned int shader_program, const glm::mat4& trans) const
+std::string Shape::to_json(const glm::mat4& trans) const
 {
-	for (const child_shape& child: m_child_shapes) {
-		// combine the child transform
-		child.shape->draw(shader_program, trans * child.trans);
+	std::string json = "{\"mesh\":[";
+	bool first = true;
+	for (const auto& uv : m_mesh) {
+		if (!first) json += ",";
+		json += std::to_string(uv.x) + ",";
+		json += std::to_string(uv.y) + ",";
+		json += std::to_string(uv.z) + ",";
+		json += std::to_string(uv.texture_x) + ",";
+		json += std::to_string(uv.texture_y);
+		first = false;
 	}
+
+	json += "],\"face_index\":[";
+	first = true;
+	for (auto& i : m_face_index) {
+		if (!first) json += ",";
+		json += std::to_string(i);
+		first = false;
+	}
+	json += "],";
+	
+	if (m_default_texture != 0) {
+		json += "\"default_texture\":" + std::to_string(m_default_texture) + ",";
+	}
+	
+	if (m_textures.size() > 0) {
+		json += "\"textures\":[";
+		first = true;
+		for (auto& i : m_textures) {
+			if (!first) json += ",";
+			json += std::to_string(i);
+			first = false;
+		}
+		json += "],";
+	}
+	json += "\"trans\":[" + to_string(trans) + "]}";
+	return std::move(json);
 }
 
 void CompoundShape::add_child_shape(Shape* shape, const glm::mat4& trans)
@@ -36,88 +82,22 @@ void CompoundShape::add_child_shape(Shape* shape, const glm::mat4& trans)
 	m_child_shapes.push_back(child);
 }
 
+void CompoundShape::add_child_shape(Shape* child, const glm::vec3& origin, const glm::vec3& rotation, float angle)
+{
+	glm::mat4 trans(1.f);
+	// translate first then rotate
+	// because translate() moves the object along the axes
+	// and rotate() will change the object's axes
+	trans = glm::translate(trans, origin);
+	trans = glm::rotate(trans, glm::radians(angle), rotation);
+	add_child_shape(child, trans);
+}
+
 void CompoundShape::set_texture(unsigned int texture)
 {
 	Shape::set_texture(texture); // set our own texture
 	for (child_shape& child : m_child_shapes) {
 		child.shape->set_texture(texture);
-	}
-}
-
-SimpleShape::SimpleShape()
-{
-	m_VAO = 0;
-	m_VBO = 0;
- 	m_num_vertices = 0;
-}
-
-SimpleShape::~SimpleShape()
-{
-	glDeleteVertexArrays(1, &m_VAO);
-	glDeleteBuffers(1, &m_VBO);
-}
-
-void SimpleShape::setup_shape(uv_vertex* vertices, int num)
-{
-	std::vector<glm::vec3> normal;
-	uv_vertex* p = vertices;
-	for (int n = 0; n < num; n += 3) {
-		glm::vec3 p1(p[n].x, p[n].y, p[n].z);
-		glm::vec3 p2(p[n + 1].x, p[n + 1].y, p[n + 1].z);
-		glm::vec3 p3(p[n + 2].x, p[n + 2].y, p[n + 2].z);
-		// one normal vector for each vertex!!!
-		glm::vec3 norm = glm::normalize(glm::cross(p2 - p1, p3 - p1));
-		normal.push_back(norm);
-		normal.push_back(norm);
-		normal.push_back(norm);
-	}
-	unsigned int VBO, VAO;
-	glGenVertexArrays(1, &VAO);
-	glGenBuffers(1, &VBO);
-
-	glBindVertexArray(VAO);
-	glBindBuffer(GL_ARRAY_BUFFER, VBO);
-	
-	size_t offset = sizeof(uv_vertex) * num;
-	size_t buffer_size = offset + normal.size() * sizeof(glm::vec3);
-	glBufferData(GL_ARRAY_BUFFER, buffer_size, NULL, GL_STATIC_DRAW);
-	glBufferSubData(GL_ARRAY_BUFFER, 0, offset, vertices);
-	glBufferSubData(GL_ARRAY_BUFFER, offset, normal.size() * sizeof(glm::vec3), normal.data());
-
-	// position attribute
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(uv_vertex), (void*)0);
-	glEnableVertexAttribArray(0);
-
-	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(uv_vertex), (void*)(3 * sizeof(float)));
-	glEnableVertexAttribArray(1);
-
-	glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), (void*)offset);
-	glEnableVertexAttribArray(2);
-
-	m_VAO = VAO;
-	m_VBO = VBO;
-	m_num_vertices = num;
-}
-
-void SimpleShape::draw(unsigned int shader_program, const glm::mat4& trans) const
-{
-	glm::mat4 model = trans;
-	glUniformMatrix4fv(glGetUniformLocation(shader_program, "model"), 1, GL_FALSE, &model[0][0]);
-	
-	// if no texture is set, draw wireframe
-	for (int i = 0; i < m_mesh_index.size(); i++)
-	{
-		int index = m_mesh_index[i];
-		int n = (i == m_mesh_index.size() - 1) ? m_num_vertices - index : m_mesh_index[i + 1] - index;
-		int t = (i < m_textures.size()) ? m_textures[i] : m_default_texture;
-		
-		glPolygonMode(GL_FRONT_AND_BACK, t == 0 ? GL_LINE : GL_FILL);
-		glActiveTexture(GL_TEXTURE0 + t);
-		glBindTexture(GL_TEXTURE_2D, t);
-		glUniform1i(glGetUniformLocation(shader_program, "txtr"), t);
-
-		glBindVertexArray(m_VAO);
-		glDrawArrays(GL_TRIANGLES, index, n);
 	}
 }
 
@@ -143,25 +123,23 @@ void SphereShape::create_mesh()
 
 	int nlat = (180 / step) + 1;
 	int nlon = (360 / step) + 1;
-	std::vector<uv_vertex> triangles;
 	uv_vertex* line = vertices.data();
 	uv_vertex* next_line = line + nlon;
 	for (int u = 0; u < (nlat - 1); u += 1) {
 		for (int v = 0; v < (nlon - 1); v += 1) {
 
-			triangles.push_back(line[v]);
-			triangles.push_back(next_line[v]);
-			triangles.push_back(next_line[v + 1]);
+			m_mesh.push_back(line[v]);
+			m_mesh.push_back(next_line[v]);
+			m_mesh.push_back(next_line[v + 1]);
 
-			triangles.push_back(line[v]);
-			triangles.push_back(next_line[v + 1]);
-			triangles.push_back(line[v + 1]);
+			m_mesh.push_back(line[v]);
+			m_mesh.push_back(next_line[v + 1]);
+			m_mesh.push_back(line[v + 1]);
 		}
 		line += nlon;
 		next_line += nlon;
 	}
-	m_mesh_index.push_back(0);
-	setup_shape(triangles.data(), (int)triangles.size());
+	m_face_index.push_back(0);
 }
 
 // In texture coordinates, (0, 0) is the bottom left, (1, 1) the top right
@@ -213,25 +191,23 @@ void CapsuleShape::create_mesh()
 
 	int nlat = (180 / step) + 2;
 	int nlon = (360 / step) + 1;
-	std::vector<uv_vertex> triangles;
 	uv_vertex* line = vertices.data();
 	uv_vertex* next_line = line + nlon;
 	for (int u = 0; u < (nlat - 1); u += 1) {
 		for (int v = 0; v < (nlon - 1); v += 1) {
 
-			triangles.push_back(line[v]);
-			triangles.push_back(next_line[v]);
-			triangles.push_back(next_line[v + 1]);
+			m_mesh.push_back(line[v]);
+			m_mesh.push_back(next_line[v]);
+			m_mesh.push_back(next_line[v + 1]);
 
-			triangles.push_back(line[v]);
-			triangles.push_back(next_line[v + 1]);
-			triangles.push_back(line[v + 1]);
+			m_mesh.push_back(line[v]);
+			m_mesh.push_back(next_line[v + 1]);
+			m_mesh.push_back(line[v + 1]);
 		}
 		line += nlon;
 		next_line += nlon;
 	}
-	m_mesh_index.push_back(0);
-	setup_shape(triangles.data(), (int)triangles.size());
+	m_face_index.push_back(0);
 }
 
 void CylinderShape::create_mesh()
@@ -253,23 +229,20 @@ void CylinderShape::create_mesh()
 		vertices.push_back(uv);
 	}
 
-	std::vector<uv_vertex> triangles;
-	
 	// top mesh
 	uv_vertex* data = vertices.data();
-	m_mesh_index.push_back((int)triangles.size());
+	m_face_index.push_back((int)m_mesh.size());
 	uv_vertex center = { 0.f, m_half_height, 0.f, 0.5f, 0.5f };
 	for (int i = 0; i < vertices.size() - 1; i++) {
-		triangles.push_back(center);
-		triangles.push_back(data[i]);
-		triangles.push_back(data[i + 1]);
+		m_mesh.push_back(center);
+		m_mesh.push_back(data[i]);
+		m_mesh.push_back(data[i + 1]);
 	}
 
 	// side mesh
-	data = vertices.data();
-	m_mesh_index.push_back((int)triangles.size());
+	m_face_index.push_back((int)m_mesh.size());
 	int n = (int)vertices.size() - 1;
-	for (int i = 0; i < vertices.size() - 1; i++) {
+	for (int i = 0; i < n; i++) {
 
 		float x1 = (float)i / (float)n;
 		float x2 = (float)(i + 1) / (float)n;
@@ -291,18 +264,17 @@ void CylinderShape::create_mesh()
 		b2.texture_x = x2;
 		b2.texture_y = 1.f;
 
-		triangles.push_back(a1);
-		triangles.push_back(b1);
-		triangles.push_back(a2);
+		m_mesh.push_back(a1);
+		m_mesh.push_back(b1);
+		m_mesh.push_back(a2);
 
-		triangles.push_back(b1);
-		triangles.push_back(b2);
-		triangles.push_back(a2);
+		m_mesh.push_back(b1);
+		m_mesh.push_back(b2);
+		m_mesh.push_back(a2);
 	}
 
 	// bottom mesh
-	data = vertices.data();
-	m_mesh_index.push_back((int)triangles.size());
+	m_face_index.push_back((int)m_mesh.size());
 	center.y = -m_half_height;
 	for (int i = 0; i < vertices.size() - 1; i++) {
 
@@ -312,11 +284,10 @@ void CylinderShape::create_mesh()
 		uv_vertex b2 = data[i + 1];
 		b2.y = -m_half_height;
 
-		triangles.push_back(center);
-		triangles.push_back(b2);
-		triangles.push_back(b1);
+		m_mesh.push_back(center);
+		m_mesh.push_back(b2);
+		m_mesh.push_back(b1);
 	}
-	setup_shape(triangles.data(), (int)triangles.size());
 }
 
 void ConeShape::create_mesh()
@@ -339,29 +310,26 @@ void ConeShape::create_mesh()
 		vertices.push_back(uv);
 	}
 
-	std::vector<uv_vertex> triangles;
-
 	// side (slope) mesh
 	uv_vertex* data = vertices.data();
 	uv_vertex center = { 0.f, halfHeight, 0.f, 0.5f, 0.5f };
 	for (int i = 0; i < vertices.size() - 1; i++) {
-		triangles.push_back(center);
-		triangles.push_back(data[i]);
-		triangles.push_back(data[i + 1]);
+		m_mesh.push_back(center);
+		m_mesh.push_back(data[i]);
+		m_mesh.push_back(data[i + 1]);
 	}
 	
-	m_mesh_index.push_back(0);
-	m_mesh_index.push_back((int)triangles.size());
+	m_face_index.push_back(0);
+	m_face_index.push_back((int)m_mesh.size());
 
 	// bottom mesh
 	data = vertices.data();
 	center.y = -halfHeight;
 	for (int i = 0; i < vertices.size() - 1; i++) {
-		triangles.push_back(center);
-		triangles.push_back(data[i + 1]);
-		triangles.push_back(data[i]);
+		m_mesh.push_back(center);
+		m_mesh.push_back(data[i + 1]);
+		m_mesh.push_back(data[i]);
 	}
-	setup_shape(triangles.data(), (int)triangles.size());
 }
 
 void BoxShape::create_mesh()
@@ -430,14 +398,14 @@ void BoxShape::create_mesh()
 		vertices[i].x *= m_cx;
 		vertices[i].y *= m_cy;
 		vertices[i].z *= m_cz;
+		m_mesh.push_back(vertices[i]);
 	}
-	m_mesh_index.push_back(0);
-	m_mesh_index.push_back(6);
-	m_mesh_index.push_back(12);
-	m_mesh_index.push_back(18);
-	m_mesh_index.push_back(24);
-	m_mesh_index.push_back(30);
-	setup_shape(vertices, num_vertices);
+	m_face_index.push_back(0);
+	m_face_index.push_back(6);
+	m_face_index.push_back(12);
+	m_face_index.push_back(18);
+	m_face_index.push_back(24);
+	m_face_index.push_back(30);
 }
 
 //~~~
@@ -457,14 +425,37 @@ void GroundShape::create_mesh()
 		uv.z *= (m_length / 2.f);
 	}
 
-	std::vector<uv_vertex> triangles;
-	m_mesh_index.push_back(0);
-	triangles.push_back(vertices[0]);
-	triangles.push_back(vertices[1]);
-	triangles.push_back(vertices[2]);
+	m_face_index.push_back(0);
+	m_mesh.push_back(vertices[0]);
+	m_mesh.push_back(vertices[1]);
+	m_mesh.push_back(vertices[2]);
 
-	triangles.push_back(vertices[0]);
-	triangles.push_back(vertices[2]);
-	triangles.push_back(vertices[3]);
-	setup_shape(triangles.data(), (int)triangles.size());
+	m_mesh.push_back(vertices[0]);
+	m_mesh.push_back(vertices[2]);
+	m_mesh.push_back(vertices[3]);
+}
+
+Shape* CreateGearShape(float radius, float half_thickness, int num_teeth, float tooth_half_width)
+{
+	if (tooth_half_width == 0.f) {
+		tooth_half_width = radius * glm::sin(glm::radians(360.f / (2.f * num_teeth))) * .5f;
+	}
+	CompoundShape* gear_shape = new CompoundShape();
+	CylinderShape* disk = new CylinderShape (radius, half_thickness);
+	disk->set_texture(gear_shape->get_default_texture());
+	gear_shape->add_child_shape(disk, glm::mat4(1.f));
+
+	float n = 360.f / num_teeth;  // Make sure this divides evenly!!
+	for (float i = 0.f; i < 360.f; i += n) {
+		Shape* tooth = new BoxShape (tooth_half_width, half_thickness, tooth_half_width * 2);
+		float x = radius * glm::sin(glm::radians(i));
+		float z = radius * glm::cos(glm::radians(i));
+		
+		glm::mat4 m(1.f);
+		m = glm::translate(m, glm::vec3(x, 0.f, z));
+		m = glm::rotate(m, glm::radians(i), glm::vec3(0.f, 1.f, 0.f));
+		tooth->set_texture(gear_shape->get_default_texture());
+		gear_shape->add_child_shape (tooth, m);
+	}
+	return gear_shape;
 }

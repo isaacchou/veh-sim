@@ -8,7 +8,6 @@
 
 #include <glm/glm.hpp>
 
-class ShapeDesc;
 class Controller;
 
 // Pure abstract class/interface
@@ -20,7 +19,7 @@ public:
 	virtual void set_player_transform(int which, const glm::mat4& trans) = 0;
 	virtual void setup_camera(bool follow, const glm::vec3& eye, const glm::vec3& target) = 0;
 
-	virtual void add_shape(int id, const ShapeDesc& shape_desc, const glm::mat4& trans) = 0;
+	virtual void add_shape(int id, const char* json) = 0;
 	virtual void update_shape(int id, const glm::mat4& trans) = 0;
 	virtual void remove_shape(int id) = 0;
 	virtual void add_texture(int id, size_t width, size_t height, unsigned char* data) = 0;

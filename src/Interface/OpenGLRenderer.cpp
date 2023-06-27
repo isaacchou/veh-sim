@@ -11,9 +11,12 @@
 #include <glad/gl.h>
 #include <GLFW/glfw3.h>
 #include <glm/gtc/matrix_transform.hpp>
+#include <boost/json/src.hpp>
 #include "OpenGLRenderer.h"
 #include "Shaders.h"
 #include "../Utils.h"
+
+namespace json = boost::json;
 
 #define FULLSCREEN_MODE 0
 
@@ -90,75 +93,155 @@ void GLFWController::process_keyboard_input(int key, int scancode, int action, i
 }
 
 //~~~
-// OpenGLRenderer
+// OpenGLShape
 //~~~
-Shape* OpenGLRenderer::create_shape_from_desc(const ShapeDesc& desc)
+OpenGLShape* create_from_json(json::object* obj, glm::mat4& trans)
 {
-	if (desc.m_type == ShapeDesc::Type::Compound) {
+	if (obj == nullptr) return nullptr;
 
-		const CompoundShapeDesc& compound_desc = dynamic_cast<const CompoundShapeDesc&>(desc);
-		
-		CompoundShape* compound = new CompoundShape();
-		compound->set_texture(desc.m_default_texture);
-		for (auto& child : compound_desc.get_child_shape_desc()) {
-			compound->add_child_shape(create_shape_from_desc(*child.m_desc), child.m_trans);
+	json::value* v = obj->if_contains("trans");
+	if (v && v->is_array()) {
+		float* p = &trans[0][0];
+		for (auto& i : v->get_array()) {
+			*p++ = value_to<float>(i);
+		}
+	}
+
+	v = obj->if_contains("child");
+	if (v && v->is_array()) {
+		OpenGLShape* compound = new OpenGLShape();
+		for (auto& c : v->get_array()) {
+			glm::mat4 m;
+			OpenGLShape* s = create_from_json(c.if_object(), m);
+			compound->add_child_shape(s, m);
 		}
 		return compound;
 	}
 	
-	SimpleShape* shape = NULL;
-	switch (desc.m_type) {
-		case ShapeDesc::Type::Ground:
-			shape = new GroundShape(desc.m_param[0], desc.m_param[1]);
-		break;
-		case ShapeDesc::Type::Box:
-			shape = new BoxShape(desc.m_param[0], desc.m_param[1], desc.m_param[2]);
-		break;
-		case ShapeDesc::Type::Sphere:
-			shape = new SphereShape(desc.m_param[0]);
-		break;
-		case ShapeDesc::Type::Cylinder:
-			shape = new CylinderShape(desc.m_param[0], desc.m_param[1]);
-		break;
-		case ShapeDesc::Type::Capsule:
-			shape = new CapsuleShape(desc.m_param[0], desc.m_param[1]);
-		break;
-		case ShapeDesc::Type::Cone:
-			shape = new ConeShape(desc.m_param[0], desc.m_param[1]);
-		break;
-		case ShapeDesc::Type::Pyramid:
-		{
-			const PyramidShapeDesc& pyramid_desc = dynamic_cast<const PyramidShapeDesc&>(desc);
-			shape = new ConvexShape(pyramid_desc);
+	std::vector<uv_vertex> mesh;
+	std::vector<int> face_index;
+	if (obj->contains("mesh")) {
+		std::vector<float> m = std::move(value_to<std::vector<float>>(obj->at("mesh")));
+		uv_vertex* p = (uv_vertex*)m.data();
+		size_t n = m.size() / (sizeof(uv_vertex)/sizeof(float));
+		for (int i = 0; i < n; i++) {		
+			mesh.push_back(p[i]);
 		}
-		break;
-		case ShapeDesc::Type::Wedge:
-		{
-			const WedgeShapeDesc& wedge_desc = dynamic_cast<const WedgeShapeDesc&>(desc);
-			shape = new ConvexShape(wedge_desc);
-		}
-		break;
-		case ShapeDesc::Type::V150:
-		{
-			const V150& v150_desc = dynamic_cast<const V150&>(desc);
-			shape = new ConvexShape(v150_desc);
-		}
-		break;
-		default:
-			return NULL;
 	}
-	shape->set_texture(m_texture_id_map[desc.m_default_texture]);
-	for (auto texture : desc.m_textures) {
-		shape->add_texture(m_texture_id_map[texture]);
+
+	if (obj->contains("face_index")) {
+		face_index = std::move(value_to<std::vector<int>>(obj->at("face_index")));		
 	}
-	return shape;
+
+	OpenGLShape* shape = new OpenGLShape(mesh, std::move(face_index));
+	if (obj->contains("default_texture")) {
+		shape->set_default_texture(value_to<unsigned int>(obj->at("default_texture")));
+	}
+
+	if (obj->contains("textures")) {
+		std::vector<unsigned int> txtr = std::move(value_to<std::vector<unsigned int>>(obj->at("textures")));
+		for (auto t : txtr) {
+			shape->add_texture(t);
+		}
+	}
+	return shape;	
 }
 
-void OpenGLRenderer::add_shape(int id, const ShapeDesc& shape_desc, const glm::mat4& trans)
+OpenGLShape* OpenGLShape::from_json(const char* json, glm::mat4& trans)
 {
-	Shape* shape = create_shape_from_desc(shape_desc);
-	if (shape != NULL) {
-		shape->create_mesh();
+	json::value val = json::parse(json);
+	return create_from_json(val.if_object(), trans);	
+}
+
+OpenGLShape::OpenGLShape(const std::vector<uv_vertex>& mesh, std::vector<int> face_index) : 
+	m_num_vertices((int)mesh.size()), m_default_texture(0)
+{
+	m_face_index = std::move(face_index);
+	std::vector<glm::vec3> normal;
+	const uv_vertex* p = mesh.data();
+	for (int n = 0; n < m_num_vertices; n += 3) {
+		glm::vec3 p1(p[n].x, p[n].y, p[n].z);
+		glm::vec3 p2(p[n + 1].x, p[n + 1].y, p[n + 1].z);
+		glm::vec3 p3(p[n + 2].x, p[n + 2].y, p[n + 2].z);
+		// one normal vector for each vertex!!!
+		glm::vec3 norm = glm::normalize(glm::cross(p2 - p1, p3 - p1));
+		normal.push_back(norm);
+		normal.push_back(norm);
+		normal.push_back(norm);
+	}
+	glGenVertexArrays(1, &m_VAO);
+	glGenBuffers(1, &m_VBO);
+
+	glBindVertexArray(m_VAO);
+	glBindBuffer(GL_ARRAY_BUFFER, m_VBO);
+	
+	size_t offset = sizeof(uv_vertex) * m_num_vertices;
+	size_t buffer_size = offset + normal.size() * sizeof(glm::vec3);
+	glBufferData(GL_ARRAY_BUFFER, buffer_size, NULL, GL_STATIC_DRAW);
+	glBufferSubData(GL_ARRAY_BUFFER, 0, offset, mesh.data());
+	glBufferSubData(GL_ARRAY_BUFFER, offset, normal.size() * sizeof(glm::vec3), normal.data());
+
+	// position attribute
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(uv_vertex), (void*)0);
+	glEnableVertexAttribArray(0);
+
+	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(uv_vertex), (void*)(3 * sizeof(float)));
+	glEnableVertexAttribArray(1);
+
+	glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), (void*)offset);
+	glEnableVertexAttribArray(2);
+}
+
+void OpenGLShape::add_child_shape(OpenGLShape* shape, glm::mat4 trans)
+{
+	child_shape child = { shape, trans };
+	m_child_shapes.push_back(child);
+}
+
+void OpenGLShape::draw(unsigned int shader_program, const glm::mat4& trans, 
+	const std::map<int, int>& texture_id_map) const
+{
+	for (const child_shape& child: m_child_shapes) {
+		// combine the child transform
+		child.shape->draw(shader_program, trans * child.trans, texture_id_map);
+	}
+	if (m_num_vertices == 0) return;
+
+	glm::mat4 model = trans;
+	glUniformMatrix4fv(glGetUniformLocation(shader_program, "model"), 1, GL_FALSE, &model[0][0]);
+	
+	// if no texture is set, draw wireframe
+	for (int i = 0; i < m_face_index.size(); i++)
+	{
+		int index = m_face_index[i];
+		int n = (i == m_face_index.size() - 1) ? m_num_vertices - index : m_face_index[i + 1] - index;
+		int t = (i < m_textures.size()) ? m_textures[i] : m_default_texture;
+		
+		if (t != 0) t = texture_id_map.at(t);
+		glPolygonMode(GL_FRONT_AND_BACK, t == 0 ? GL_LINE : GL_FILL);
+		glActiveTexture(GL_TEXTURE0 + t);
+		glBindTexture(GL_TEXTURE_2D, t);
+		glUniform1i(glGetUniformLocation(shader_program, "txtr"), t);
+
+		glBindVertexArray(m_VAO);
+		glDrawArrays(GL_TRIANGLES, index, n);
+	}
+}
+
+OpenGLShape::~OpenGLShape()
+{
+	glDeleteVertexArrays(1, &m_VAO);
+	glDeleteBuffers(1, &m_VBO);
+}
+
+//~~~
+// OpenGLRenderer
+//~~~
+void OpenGLRenderer::add_shape(int id, const char* json)
+{
+	glm::mat4 trans;
+	OpenGLShape* shape = OpenGLShape::from_json(json, trans);
+	if (shape != nullptr) {
 		m_shapes.insert(std::make_pair(id, shape));
 		m_trans.insert(std::make_pair(id, trans));
 	}
@@ -276,7 +359,7 @@ bool OpenGLRenderer::render(float elapsed_time)
 	
 	for (auto& s : m_shapes) {
 		if (s.second != NULL) {
-			s.second->draw(m_shader_program, m_trans[s.first]);
+			s.second->draw(m_shader_program, m_trans[s.first], m_texture_id_map);
 		}
 	}
 	debug_log_mute("elapsed time (sec): %f fps: %f\n", elapsed_time, 1.f / elapsed_time);

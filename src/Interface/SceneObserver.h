@@ -9,7 +9,7 @@
 #include <map>
 #include <set>
 #include "Renderer.h"
-#include "ShapeDesc.h"
+#include "Shapes.h"
 #include "Controller.h"
 #include "TextureMaps.h"
 
@@ -17,7 +17,7 @@ class SceneObserver
 {
 protected:
 	int m_next_shape_id;
-	std::map<int, const ShapeDesc*> m_shapes;
+	std::map<int, const Shape*> m_shapes;
 	std::map<int, glm::mat4> m_trans;
 
 	std::set<int> m_add, m_update, m_remove;
@@ -41,9 +41,9 @@ public:
 		return true;
 	}
 
-	int add_shape(const ShapeDesc* shape_desc, const glm::mat4& trans) {
-		m_shapes.insert(std::make_pair (m_next_shape_id, shape_desc));
-		m_trans.insert(std::make_pair (m_next_shape_id, trans));
+	int add_shape(const Shape* shape, const glm::mat4& trans) {
+		m_shapes.insert(std::make_pair(m_next_shape_id, shape));
+		m_trans.insert(std::make_pair(m_next_shape_id, trans));
 		m_add.insert(m_next_shape_id);
 		return m_next_shape_id++;
 	}
@@ -75,14 +75,15 @@ public:
 			m_player->add_texture(i.first, i.second.width, i.second.height, i.second.data);
 		}
 		for (auto& s : m_shapes) {
-			m_player->add_shape(s.first, *s.second, m_trans[s.first]);
+			const Shape& shape = *s.second;
+			m_player->add_shape(s.first, shape.to_json(m_trans[s.first]).c_str());
 		}
 		m_player->post_connect();
 	}
 	
 	void update() {
 		if (m_player != NULL) {
-			for (int i : m_add) m_player->add_shape(i, *m_shapes[i], m_trans[i]);
+			for (int i : m_add) m_player->add_shape(i, (*m_shapes[i]).to_json(m_trans[i]).c_str());
 			for (int i : m_update) m_player->update_shape(i, m_trans[i]);
 			for (int i : m_remove) m_player->remove_shape(i);
 		}

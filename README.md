@@ -60,7 +60,7 @@ Camera movements when it is not following the player vehicle:
 * [GLFW](https://www.glfw.org/): Library for OpenGL API
 * [glm](https://glm.g-truc.net/): OpenGL Mathematics library
 * [stb](https://github.com/nothings/stb): Single-file public domain libraries for C/C++
-* [rapidjson](https://github.com/Tencent/rapidjson): A JSON parser/generator for C++
+* [Boost](https://www.boost.org/): Free peer-reviewed portable C++ source libraries 
 * [JSON](https://www.json.org/): Introduction to JSON 
 * [JSON lint](https://jsonlint.com/): JSON validator and reformatter
 

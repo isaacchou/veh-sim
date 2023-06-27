@@ -92,20 +92,6 @@ if exist bullet3 (
     popd
 )
 
-if exist rapidjson (
-    echo ===
-    echo === Skipping rapidjson
-    echo ===
-) else (
-    echo ===
-    echo === Setting up rapidjson
-    echo ===
-    pushd vcpkg-2023.04.15
-    vcpkg install rapidjson:x64-windows
-    xcopy packages\rapidjson_x64-windows\include ..\rapidjson /EIQ
-    popd
-)
-
 if exist boost_1_82_0 (
     echo ===
     echo === Skipping boost

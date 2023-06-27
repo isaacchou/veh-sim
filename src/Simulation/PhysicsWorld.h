@@ -45,7 +45,7 @@ public:
 	virtual int how_many_players() = 0;
 	
 	int run(const char* title);
-	btRigidBody* createRigidBody(ShapeDesc* shape, btVector3 origin, btQuaternion rotation, btScalar mass = 0.f);
+	btRigidBody* createRigidBody(const Shape& shape, btVector3 origin, btQuaternion rotation, btScalar mass = 0.f);
 	void removeRigidBody(btRigidBody* body);
 	void addConstraint(btTypedConstraint* constraint, bool disableCollisionsBetweenLinkedBodies = false) {
 		dynamicsWorld->addConstraint(constraint, disableCollisionsBetweenLinkedBodies);

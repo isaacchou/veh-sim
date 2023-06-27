@@ -204,31 +204,14 @@ public:
 		send_all<size_t>(height);
 		size_t row_bytes = ((((width * 3) + 3) >> 2) << 2);
 		send_all(data, row_bytes * height);
-	}
-	
-	void send_shape_desc(const ShapeDesc& shape_desc, const glm::mat4& trans) {
-		send_all<ShapeDesc::Type>(shape_desc.m_type);
-		send_all((void*)shape_desc.m_param, 4 * sizeof(float));
-		send_all<unsigned int>(shape_desc.m_default_texture);
-		send_all<size_t>(shape_desc.m_textures.size());
-		for (unsigned int t : shape_desc.m_textures) {
-			send_all<unsigned int>(t);
-		}
-		send_all<const glm::mat4&>(trans);
-
-		if (shape_desc.m_type == ShapeDesc::Type::Compound) {
-			const CompoundShapeDesc& compound = dynamic_cast<const CompoundShapeDesc&>(shape_desc);
-			const std::vector<ShapeDesc::child_desc>& child_desc = compound.get_child_shape_desc();
-			send_all<size_t>(child_desc.size());
-			for (auto& desc : child_desc) {
-				send_shape_desc(*desc.m_desc, desc.m_trans);
-			}
-		}
-	}
-	virtual void add_shape(int id, const ShapeDesc& shape_desc, const glm::mat4& trans) {
+	}	
+	virtual void add_shape(int id, const char* json) {
 		send_all<Command>(Command::add_shape);
 		send_all<int>(id);
-		send_shape_desc(shape_desc, trans);
+		// send the null-terminated json string
+		size_t n = strlen(json) + 1;
+		send_all<int>((int)n);
+		send_all(json, n);	
 	}
 	virtual void update_shape(int id, const glm::mat4& trans) {
 		send_all<Command>(Command::update_shape);
@@ -300,56 +283,6 @@ public:
 		// server assigns a player id after connection
 		m_player_id = session->read<int>();
 	}
-
-	ShapeDesc* read_shape_desc(websocket_session* session, glm::mat4& m) {
-		
-		ShapeDesc::Type type = session->read<ShapeDesc::Type>();
-		float param[4];
-		session->read_data((void*)param, 4 * sizeof(float));
-
-		ShapeDesc* desc = NULL;
-		CompoundShapeDesc* compound = NULL;
-		switch (type)
-		{
-			case ShapeDesc::Type::Compound:
-				compound = new CompoundShapeDesc();
-				desc = compound;
-			break;
-			case ShapeDesc::Type::Pyramid:
-				desc = new PyramidShapeDesc(param[0], param[1], param[2]);			
-			break;
-			case ShapeDesc::Type::Wedge:
-				desc = new WedgeShapeDesc(param[0], param[1], param[2], param[3]);
-			break;
-			case ShapeDesc::Type::V150:
-				desc = new V150(param[0]);
-			break;
-			default:
-				desc = new ShapeDesc();
-			break;
-		}
-		desc->m_type = type;
-		desc->m_param[0] = param[0];
-		desc->m_param[1] = param[1];
-		desc->m_param[2] = param[2];
-		desc->m_param[3] = param[3];
-		desc->m_default_texture = session->read<unsigned int>();
-		size_t n = session->read<size_t>();
-		for (int i = 0; i < n; i++) {
-			desc->m_textures.push_back(session->read<unsigned int>());
-		}
-		m = session->read<glm::mat4>();
-
-		if (compound != NULL) {
-			n = session->read<size_t>();
-			for (int i = 0; i < n; i++) {
-				glm::mat4 mm;
-				compound->add_child_shape_desc(read_shape_desc(session, mm), mm);
-			}
-		}
-		return desc;
-	}
-
 	bool communicate() {
 		bool cont = true;
 		auto& session = m_websockets[0];
@@ -392,10 +325,11 @@ public:
 			case Command::add_shape:
 			{
 				int id = session->read<int>();
-				glm::mat4 m;
-				ShapeDesc* desc = read_shape_desc(session, m);
-				m_renderer.add_shape(id, *desc, m);
-				delete desc;
+				int size = session->read<int>();
+				char* buf = new char [size];
+				session->read_data(buf, size);
+				m_renderer.add_shape(id, buf);
+				delete [] buf;
 			}
 			break;
 			case Command::update_shape:

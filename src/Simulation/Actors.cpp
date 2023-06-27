@@ -9,7 +9,7 @@
 #include <GLFW/glfw3.h>
 #include <algorithm>
 #include "Actors.h"
-#include "../Interface/ShapeDesc.h"
+#include "../Interface/Shapes.h"
 #include "../Interface/TextureMaps.h"
 #include "../Utils.h"
 
@@ -161,9 +161,9 @@ Car::create_steer_box(float box_size, btRigidBody& car_body, const btVector3& pi
 	unsigned texture = 0; // for now
 	btTransform trans = car_body.getCenterOfMassTransform();
 	btVector3 pivot_in_box(0.f, -box_size, 0.f);
-	ShapeDesc* shape = new CylinderShapeDesc (box_size, box_size);
-	shape->add_texture(m_world.get_texture_map().solid_color(Color(45, 45, 45)), 6);
-	btRigidBody* box = m_world.createRigidBody(shape,
+	CylinderShape* cylinder = new CylinderShape (box_size, box_size);
+	cylinder->add_texture(m_world.get_texture_map().solid_color(Color(45, 45, 45)), 6);
+	btRigidBody* box = m_world.createRigidBody(*cylinder,
 											   trans(pivot_in_car) - pivot_in_box,
 											   btQuaternion(btVector3(0.f, 0.f, 1.f), 0.f), 1.0);
 	btHingeConstraint* hinge = new btHingeConstraint(car_body, *box, pivot_in_car, pivot_in_box,
@@ -179,11 +179,11 @@ btRigidBody* Car::create_wheel(float radius, float width, float spacing, btRigid
 	btTransform trans = car_body.getCenterOfMassTransform();
 	float pivot_in_wheel = width + spacing;
 	
-	ShapeDesc* cylinder = new CylinderShapeDesc (radius, width);
+	CylinderShape* cylinder = new CylinderShape (radius, width);
 	cylinder->add_texture(m_world.get_texture_map().solid_color(Color(20, 20, 20)));	// inside face 
 	cylinder->add_texture(m_world.get_texture_map().solid_color(Color(30, 30, 30)));
 	cylinder->add_texture(m_world.get_texture_map().solid_color(Color(50, 50, 50)));	// outside face
-	btRigidBody* wheel = m_world.createRigidBody(cylinder,
+	btRigidBody* wheel = m_world.createRigidBody(*cylinder,
 												 trans(pivot_in_car) + btVector3(left ? pivot_in_wheel : -pivot_in_wheel, 0.f, 0.f),
 												 btQuaternion(btVector3(0.f, 0.f, 1.f), glm::radians(left ? 90.f : -90.f)),
 												 10.f);
@@ -217,9 +217,9 @@ void Car::create(const btVector3& pos, float)
 
 	// car chassis
 	unsigned int texture = 0;
-	ShapeDesc* shape = new V150(0.6f);
+	Shape* shape = new V150(0.6f);
 	shape->set_texture(m_world.get_texture_map().solid_color(Color(60, 60, 60)));
-	m_car_body = m_world.createRigidBody(shape,
+	m_car_body = m_world.createRigidBody(*shape,
 										 btVector3(0.0f, wheel_radius - (car_half_thickness + steer_box_size), 0.0f) + pos,
 										 btQuaternion(btVector3(0.f, 0.f, 1.f), 0.f), car_body_weight);
 	btVector3 pivot_in_car(car_half_width - steer_box_size, -car_half_thickness, wheel_distance);
@@ -332,10 +332,10 @@ void Tank::create(const btVector3& pos, float)
 	float body_width = 3.f;	  // half width
 	float body_height = .75f; // half height
 	float body_length = 5.f;  // half length
-	BoxShapeDesc* body_shape = new BoxShapeDesc(body_width, body_height, body_length);
+	BoxShape* body_shape = new BoxShape(body_width, body_height, body_length);
 	body_shape->add_texture(m_world.get_texture_map().diagonal_stripes(160, 32, 2, Color("gold"), Color("black")));
 	body_shape->set_texture(m_world.get_texture_map().solid_color("#505050"));
-	m_tank_body = m_world.createRigidBody(body_shape, pos, btQuaternion(0.f, 0.f, 0.f), 10.f);
+	m_tank_body = m_world.createRigidBody(*body_shape, pos, btQuaternion(0.f, 0.f, 0.f), 10.f);
 
 	float gear_pos = 4.f - 0.3348078f;
 	float spacing = 0.5f;
@@ -348,27 +348,27 @@ void Tank::create(const btVector3& pos, float)
 		for (float z : {1.f, -1.f}) {
 			glm::mat4 trans(1.f);
 			
-			CompoundShapeDesc* gear_shape = new CompoundShapeDesc();
-			CylinderShapeDesc* axle = new CylinderShapeDesc(gear_radius * 0.5f, gear_thickness);
-			gear_shape->add_child_shape_desc(axle, trans);
+			CompoundShape* gear_shape = new CompoundShape();
+			CylinderShape* axle = new CylinderShape(gear_radius * 0.5f, gear_thickness);
+			gear_shape->add_child_shape(axle, trans);
 
-			ShapeDesc* guard_disk = new CylinderShapeDesc(gear_radius + tooth_half_width * 3.f, tooth_half_width);
+			Shape* guard_disk = new CylinderShape(gear_radius + tooth_half_width * 3.f, tooth_half_width);
 			trans = glm::translate(glm::mat4(1.f), glm::vec3(0.f, gear_thickness + tooth_half_width, 0.f));
-			gear_shape->add_child_shape_desc(guard_disk, trans);
-			ShapeDesc* gear = CreateGearShapeDesc(gear_radius, gear_thickness * 0.1f, num_teeth, tooth_half_width * 0.9f);
+			gear_shape->add_child_shape(guard_disk, trans);
+			Shape* gear = CreateGearShape(gear_radius, gear_thickness * 0.1f, num_teeth, tooth_half_width * 0.9f);
 			trans = glm::translate(glm::mat4(1.f), glm::vec3(0.f, gear_thickness * 0.5f, 0.f));
-			gear_shape->add_child_shape_desc(gear, trans);
+			gear_shape->add_child_shape(gear, trans);
 
-			guard_disk = new CylinderShapeDesc(gear_radius + tooth_half_width * 3.f, tooth_half_width);
+			guard_disk = new CylinderShape(gear_radius + tooth_half_width * 3.f, tooth_half_width);
 			trans = glm::translate(glm::mat4(1.f), glm::vec3(0.f, -(gear_thickness + tooth_half_width), 0.f));
-			gear_shape->add_child_shape_desc(guard_disk, trans);
-			gear = CreateGearShapeDesc(gear_radius, gear_thickness * 0.1f, num_teeth, tooth_half_width * 0.9f);
+			gear_shape->add_child_shape(guard_disk, trans);
+			gear = CreateGearShape(gear_radius, gear_thickness * 0.1f, num_teeth, tooth_half_width * 0.9f);
 			trans = glm::translate(glm::mat4(1.f), glm::vec3(0.f, -gear_thickness * 0.5f, 0.f));
-			gear_shape->add_child_shape_desc(gear, trans);
+			gear_shape->add_child_shape(gear, trans);
 			gear_shape->set_texture(m_world.get_texture_map().solid_color(Color(80, 80, 80)));
 
 			btVector3 pivot_in_tank(x * (body_width + spacing), 0.f, z * gear_pos);
-			m_gear[i] = m_world.createRigidBody(gear_shape, pivot_in_tank + pos + btVector3(x * gear_thickness, 0.f, 0.f),
+			m_gear[i] = m_world.createRigidBody(*gear_shape, pivot_in_tank + pos + btVector3(x * gear_thickness, 0.f, 0.f),
 												btQuaternion(btVector3(0.f, 0.f, 1.f), glm::radians(x * 90.f)), 0.1f);
 			btHingeConstraint* hinge = new btHingeConstraint(*m_tank_body, *m_gear[i], 
 															 pivot_in_tank, btVector3(0.f, gear_thickness, 0.f),
@@ -382,11 +382,11 @@ void Tank::create(const btVector3& pos, float)
 	for (float x : {1.f, -1.f}) {
 		for (float z : {1.f, 0.f, -1.f}) {
 			// bottom wheels
-			CylinderShapeDesc* bottom_wheel = new CylinderShapeDesc(wheel_radius, gear_thickness * 0.4f);
+			CylinderShape* bottom_wheel = new CylinderShape(wheel_radius, gear_thickness * 0.4f);
 			bottom_wheel->set_texture(m_world.get_texture_map().solid_color(Color(80, 80, 80)));
 			// position the bottom of the wheel below the drive gear for better climbing capability
 			btVector3 pivot_in_tank(x * (body_width + spacing), -(gear_radius + tooth_half_width + 0.5f) + wheel_radius, z * 1.8f);
-			btRigidBody* gear = m_world.createRigidBody(bottom_wheel, pivot_in_tank + pos + btVector3(x * gear_thickness, 0.f, 0.f),
+			btRigidBody* gear = m_world.createRigidBody(*bottom_wheel, pivot_in_tank + pos + btVector3(x * gear_thickness, 0.f, 0.f),
 														btQuaternion(btVector3(0.f, 0.f, 1.f), glm::radians(x * 90.f)), 0.1f);
 			btHingeConstraint* hinge = new btHingeConstraint(*m_tank_body, *gear, 
 															 pivot_in_tank, btVector3(0.f, gear_thickness, 0.f),
@@ -395,10 +395,10 @@ void Tank::create(const btVector3& pos, float)
 
 			if (z != 0.f) {
 				// top wheels
-				CylinderShapeDesc* top_wheel = new CylinderShapeDesc(wheel_radius, gear_thickness * 0.4f);
+				CylinderShape* top_wheel = new CylinderShape(wheel_radius, gear_thickness * 0.4f);
 				top_wheel->set_texture(m_world.get_texture_map().solid_color(Color(80, 80, 80)));
 				btVector3 pivot_in_tank(x * (body_width + spacing), gear_radius - wheel_radius, z);
-				gear = m_world.createRigidBody(top_wheel, pivot_in_tank + pos + btVector3(x * gear_thickness, 0.f, 0.f),
+				gear = m_world.createRigidBody(*top_wheel, pivot_in_tank + pos + btVector3(x * gear_thickness, 0.f, 0.f),
 											   btQuaternion(btVector3(0.f, 0.f, 1.f), glm::radians(x * 90.f)), 0.1f);
 				hinge = new btHingeConstraint(*m_tank_body, *gear, 
 											  pivot_in_tank, btVector3(0.f, gear_thickness, 0.f),
@@ -458,9 +458,9 @@ void Tank::create(const btVector3& pos, float)
 				debug_log("Last track width = %f\n", track_length - x);
 				continue;
 			}
-			BoxShapeDesc* track_shape = new BoxShapeDesc(gear_thickness, 0.1f, track_width);
+			BoxShape* track_shape = new BoxShape(gear_thickness, 0.1f, track_width);
 			track_shape->set_texture(m_world.get_texture_map().solid_color("#505050"));
-			btRigidBody* track = m_world.createRigidBody(track_shape, track_pos + pos, track_rotation, 0.1f);
+			btRigidBody* track = m_world.createRigidBody(*track_shape, track_pos + pos, track_rotation, 0.1f);
 			track->setFriction(1.5f);
 			if (last_track != NULL) {
 				btHingeConstraint* hinge = new btHingeConstraint(*track, *last_track, 
@@ -521,27 +521,27 @@ void Gun::create(const btVector3& pos, float scale)
 	m_base_half_height *= scale;
 	
 	// Part I: a rotating base consists of two identical cylinders joined by a hinge
-	CylinderShapeDesc* bottom_base = new CylinderShapeDesc(base_radius, m_base_half_height);
-	CylinderShapeDesc* top_base = new CylinderShapeDesc(base_radius, m_base_half_height);
-	BoxShapeDesc* body = new BoxShapeDesc(body_half_width, body_half_height, body_length);
+	CylinderShape* bottom_base = new CylinderShape(base_radius, m_base_half_height);
+	CylinderShape* top_base = new CylinderShape(base_radius, m_base_half_height);
+	BoxShape* body = new BoxShape(body_half_width, body_half_height, body_length);
 	bottom_base->set_texture(m_world.get_texture_map().solid_color("#404040"));
 	top_base->set_texture(m_world.get_texture_map().solid_color("#404040"));
 	body->set_texture(m_world.get_texture_map().solid_color("#505050"));
 
 	glm::mat4 m(1.f);
-	CompoundShapeDesc* turret = new CompoundShapeDesc();
-	turret->add_child_shape_desc(top_base, m);
+	CompoundShape* turret = new CompoundShape();
+	turret->add_child_shape(top_base, m);
 	m = glm::translate(glm::mat4(1.f), glm::vec3(0.f, m_base_half_height + body_half_height, 0.f));
-	turret->add_child_shape_desc(body, m);
+	turret->add_child_shape(body, m);
 
 	btTransform trans;
 	trans.setIdentity();
 
 	trans.setOrigin(btVector3(0.f, 0.f, 0.f));
-	m_bottom_base = m_world.createRigidBody(bottom_base,
+	m_bottom_base = m_world.createRigidBody(*bottom_base,
 											trans.getOrigin() + pos, trans.getRotation(), 5.f);
 	trans.setOrigin(btVector3(0.f, 2.f * m_base_half_height, 0.f));
-	btRigidBody* top_base_body = m_world.createRigidBody(turret,
+	btRigidBody* top_base_body = m_world.createRigidBody(*turret,
 														 trans.getOrigin() + pos, trans.getRotation(), 2.f);
 	m_base_hinge = new btHingeConstraint(*m_bottom_base, *top_base_body,
 										 btVector3(0.f, m_base_half_height, 0.f), btVector3(0.f, -m_base_half_height, 0.f),
@@ -549,17 +549,17 @@ void Gun::create(const btVector3& pos, float scale)
 	m_world.addConstraint(m_base_hinge, true);
 
 	// Part II: gun barrel and turret
-	CompoundShapeDesc* gun_shape = new CompoundShapeDesc();
-	CylinderShapeDesc* barrel = new CylinderShapeDesc(m_barrel_radius, barrel_length);
-	CylinderShapeDesc* joint = new CylinderShapeDesc(m_barrel_radius, body_half_width * 0.75f);
+	CompoundShape* gun_shape = new CompoundShape();
+	CylinderShape* barrel = new CylinderShape(m_barrel_radius, barrel_length);
+	CylinderShape* joint = new CylinderShape(m_barrel_radius, body_half_width * 0.75f);
 
 	m = glm::rotate(glm::mat4(1.f), glm::radians(90.f), glm::vec3(0.f, 0.f, 1.f));
-	gun_shape->add_child_shape_desc(joint, m);
+	gun_shape->add_child_shape(joint, m);
 	m = glm::translate(m, glm::vec3(0.f, 0.f, barrel_length));
 	m = glm::rotate(m, glm::radians(90.f), glm::vec3(1.f, 0.f, 0.f));
-	gun_shape->add_child_shape_desc(barrel, m);
+	gun_shape->add_child_shape(barrel, m);
 	gun_shape->set_texture(m_world.get_texture_map().solid_color("#404040"));
-	m_body = m_world.createRigidBody(gun_shape, btVector3(0.f, 3.f * m_base_half_height + body_half_height, body_length) + pos,
+	m_body = m_world.createRigidBody(*gun_shape, btVector3(0.f, 3.f * m_base_half_height + body_half_height, body_length) + pos,
 									btQuaternion(btVector3(0.f, 1.f, 0.f), glm::radians(0.f)),
 									5.f);
 	m_body_hinge = new btHingeConstraint(*top_base_body, *m_body,
@@ -635,9 +635,9 @@ void Gun::fire_shell()
 	btScalar caliber = m_barrel_radius;
 	btTransform trans = m_body->getCenterOfMassTransform();
 	btQuaternion rotation = trans.getRotation();
-	ShapeDesc* projectile = new CapsuleShapeDesc(caliber, caliber);
+	CapsuleShape* projectile = new CapsuleShape(caliber, caliber);
 	projectile->add_texture(m_projectile_texture);
-	m_shell = m_world.createRigidBody(projectile, trans(m_mozzle + btVector3(0.f, 0.f, 2.f * caliber)), // non-overlaping with the barrel
+	m_shell = m_world.createRigidBody(*projectile, trans(m_mozzle + btVector3(0.f, 0.f, 2.f * caliber)), // non-overlaping with the barrel
 									  rotation * btQuaternion(btVector3(1.f, 0.f, 0.f), glm::radians(90.f)), 2.f);
 	// enable CCD (Continuous Collision Detection) if distance 
 	// is larger than one bullet caliber in one simulation step
@@ -655,9 +655,9 @@ void Gun::fire_bullet()
 	btScalar caliber = 0.75f * m_barrel_radius;
 	btTransform trans = m_body->getCenterOfMassTransform();
 	btQuaternion rotation = trans.getRotation();
-	ShapeDesc* projectile = new SphereShapeDesc(caliber);
+	SphereShape* projectile = new SphereShape(caliber);
 	projectile->add_texture(m_projectile_texture);
-	btRigidBody* bullet = m_world.createRigidBody(projectile, trans(m_mozzle + btVector3(0.f, 0.f, caliber)), // non-overlaping with the barrel
+	btRigidBody* bullet = m_world.createRigidBody(*projectile, trans(m_mozzle + btVector3(0.f, 0.f, caliber)), // non-overlaping with the barrel
 												  rotation, .5f);
 	for (auto b : m_bullets) {
 		// reduce the objects for contact check
@@ -685,29 +685,4 @@ void Gun::process_player_input(Controller& ctlr)
 	aim(scroll.x * 3.f, scroll.y * -5.f);
 	if (ctlr.is_mouse_button_pressed(GLFW_MOUSE_BUTTON_LEFT)) fire(Gun::Bullet);
 	if (ctlr.is_key_pressed(GLFW_KEY_ENTER)) fire(Gun::Shell);
-}
-
-ShapeDesc* CreateGearShapeDesc (float radius, float half_thickness, int num_teeth, float tooth_half_width)
-{
-	if (tooth_half_width == 0.f) {
-		tooth_half_width = radius * glm::sin(glm::radians(360.f / (2.f * num_teeth))) * .5f;
-	}
-	CompoundShapeDesc* gear_shape = new CompoundShapeDesc();
-	CylinderShapeDesc* disk = new CylinderShapeDesc (radius, half_thickness);
-	disk->set_texture(gear_shape->m_default_texture);
-	gear_shape->add_child_shape_desc(disk, glm::mat4(1.f));
-
-	float n = 360.f / num_teeth;  // Make sure this divides evenly!!
-	for (float i = 0.f; i < 360.f; i += n) {
-		ShapeDesc* tooth = new BoxShapeDesc (tooth_half_width, half_thickness, tooth_half_width * 2);
-		float x = radius * glm::sin(glm::radians(i));
-		float z = radius * glm::cos(glm::radians(i));
-		
-		glm::mat4 m(1.f);
-		m = glm::translate(m, glm::vec3(x, 0.f, z));
-		m = glm::rotate(m, glm::radians(i), glm::vec3(0.f, 1.f, 0.f));
-		tooth->set_texture(gear_shape->m_default_texture);
-		gear_shape->add_child_shape_desc (tooth, m);
-	}
-	return gear_shape;
 }

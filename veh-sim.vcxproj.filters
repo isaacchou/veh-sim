@@ -80,9 +80,6 @@
     <ClInclude Include="src\Interface\Shaders.h">
       <Filter>Source Files\Interface</Filter>
     </ClInclude>
-    <ClInclude Include="src\Interface\ShapeDesc.h">
-      <Filter>Source Files\Interface</Filter>
-    </ClInclude>
     <ClInclude Include="src\Interface\Shapes.h">
       <Filter>Source Files\Interface</Filter>
     </ClInclude>
