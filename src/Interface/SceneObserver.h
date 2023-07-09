@@ -74,10 +74,6 @@ public:
 		for (auto& i : m_TextureMap.get_image_map()) {
 			m_player->add_texture(i.first, i.second.width, i.second.height, i.second.data);
 		}
-		for (auto& s : m_shapes) {
-			const Shape& shape = *s.second;
-			m_player->add_shape(s.first, shape.to_json(m_trans[s.first]).c_str());
-		}
 		m_player->post_connect();
 	}
 	

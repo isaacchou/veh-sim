@@ -211,6 +211,7 @@ void OpenGLShape::draw(unsigned int shader_program, const glm::mat4& trans,
 	glUniformMatrix4fv(glGetUniformLocation(shader_program, "model"), 1, GL_FALSE, &model[0][0]);
 	
 	// if no texture is set, draw wireframe
+	glBindVertexArray(m_VAO);
 	for (int i = 0; i < m_face_index.size(); i++)
 	{
 		int index = m_face_index[i];
@@ -222,8 +223,7 @@ void OpenGLShape::draw(unsigned int shader_program, const glm::mat4& trans,
 		glActiveTexture(GL_TEXTURE0 + t);
 		glBindTexture(GL_TEXTURE_2D, t);
 		glUniform1i(glGetUniformLocation(shader_program, "txtr"), t);
-
-		glBindVertexArray(m_VAO);
+		// draw one face
 		glDrawArrays(GL_TRIANGLES, index, n);
 	}
 }

@@ -89,6 +89,7 @@
     <ClCompile Include="src\Interface\Shaders.cpp" />
     <ClCompile Include="src\Interface\Shapes.cpp" />
     <ClCompile Include="src\Interface\TextureMaps.cpp" />
+    <ClCompile Include="src\PlayerProtocol.cpp" />
     <ClCompile Include="src\Simulation\Actors.cpp" />
     <ClCompile Include="src\Simulation\GameWorld.cpp" />
     <ClCompile Include="src\Simulation\PhysicsWorld.cpp" />
