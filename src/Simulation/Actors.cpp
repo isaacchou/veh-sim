@@ -251,6 +251,7 @@ void Car::create(const btVector3& pos, float)
 Tank::Tank(PhysicsWorld& world) : Vehicle(world), m_gun(world), m_gear{0}
 {
 	m_tank_body = NULL;
+	m_max_velocity = 3.f;
 	m_max_update = 120; // will be adjusted to frame rate in the update loop
 	m_update = 0;
 }
@@ -260,7 +261,7 @@ void Tank::accelarate(float torque)
 	int i = 0;
 	for (float x : {1.f, -1.f}) {
 		for (float z : {1.f, -1.f}) {
-			if (get_angular_velocity_local(*m_gear[i]).length() < 10.f) {
+			if (get_angular_velocity_local(*m_gear[i]).length() < m_max_velocity) {
 				apply_torque_impulse(*m_gear[i], btVector3(0.f, -x * torque * 0.15f, 0.f));
 			}
 			i += 1;
@@ -279,7 +280,7 @@ void Tank::turn(float torque)
 	btVector3 f = btVector3(0.f, torque * 0.15f, 0.f);
 	for (btRigidBody* gear : m_gear) {
 		btVector3 v = get_angular_velocity_local(*gear);
-		if (v.length() < 10.f || v.dot(f) < 0.f) {
+		if (v.length() < m_max_velocity || v.dot(f) < 0.f) {
 			apply_torque_impulse(*gear, f);
 		}
 	}

@@ -1,3 +1,4 @@
 # Visual Studio build files and directories
 .vs/
 x64/
+web/gl-matrix-min.js

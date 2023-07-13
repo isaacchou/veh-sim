@@ -142,6 +142,7 @@ protected:
 	btRigidBody* m_tank_body;
 	btRigidBody* m_gear[4];
 	
+	float m_max_velocity;
 	int m_max_update;
 	int m_update;
 

@@ -37,15 +37,15 @@ json::array to_json_array(const glm::mat4& m)
 
 void from_json_array(glm::vec2& v, const json::array& a)
 {
-	v.x = (float)a[0].as_double();
-	v.y = (float)a[1].as_double();
+	v.x = (float)a[0].get_double();
+	v.y = (float)a[1].get_double();
 }
 
 void from_json_array(glm::vec3& v, const json::array& a)
 {
-	v.x = (float)a[0].as_double();
-	v.y = (float)a[1].as_double();
-	v.z = (float)a[2].as_double();
+	v.x = (float)a[0].get_double();
+	v.y = (float)a[1].get_double();
+	v.z = (float)a[2].get_double();
 }
 
 void from_json_array(glm::mat4& m, const json::array& a)
@@ -53,7 +53,7 @@ void from_json_array(glm::mat4& m, const json::array& a)
 	float* p = &m[0][0];
 	int n = sizeof(m)/sizeof(float);
 	for (const auto& i : a) {
-		*p++ = (float)i.as_double();
+		*p++ = (float)i.get_double();
 	}
 }
 
@@ -133,14 +133,14 @@ Controller& PlayerServer::get_controller(int player_id)
 	const json::array& keyboard = r.at("keyboard").as_array();
 	size_t n = keyboard.size();
 	for (int i = 0; i < n; i++) {
-		m_controller.m_keyboard.insert((int)keyboard.at(i).as_int64());
+		m_controller.m_keyboard.insert((int)keyboard.at(i).get_int64());
 	}
 
 	m_controller.m_mouse.clear();
 	const json::array& mouse = r.at("mouse").as_array();
 	n = mouse.size();
 	for (int i = 0; i < n; i++) {
-		m_controller.m_mouse.insert((int)mouse.at(i).as_int64());
+		m_controller.m_mouse.insert((int)mouse.at(i).get_int64());
 	}
 	from_json_array(m_controller.m_cursor_cur_pos, r.at("cursor_cur_pos").as_array());
 	from_json_array(m_controller.m_cursor_last_pos, r.at("cursor_last_pos").as_array());
@@ -203,7 +203,7 @@ bool PlayerServer::end_update(float elapsed_time)
 	for (auto& session : m_websockets) {
 		std::string msg = session->read_msg();
 		json::value r = json::parse(msg);
-		ret = ret && r.at("continue").as_bool();
+		ret = ret && r.at("continue").get_bool();
 	}
 	return ret;
 }
@@ -241,17 +241,17 @@ bool PlayerClient::communicate()
 	json::value msg = json::parse(s);
 	const json::string cmd = msg.at("cmd").as_string();
 	if (cmd == "set_player_id") {
-		m_player_id = (int)msg.at("player_id").as_int64();
+		m_player_id = (int)msg.at("player_id").get_int64();
 	} else if (cmd == "setup_camera") {
-		bool follow = msg.at("follow").as_bool();
+		bool follow = msg.at("follow").get_bool();
 		glm::vec3 eye, target;
 		from_json_array(eye, msg.at("eye").as_array());
 		from_json_array(target, msg.at("target").as_array());
 		m_renderer.setup_camera(follow, eye, target);
 	} else if (cmd == "add_texture") {
-		int id = (int)msg.at("id").as_int64();
-		size_t width = (int)msg.at("width").as_int64();
-		size_t height = (int)msg.at("height").as_int64();
+		int id = (int)msg.at("id").get_int64();
+		size_t width = (int)msg.at("width").get_int64();
+		size_t height = (int)msg.at("height").get_int64();
 		json::string data = msg.at("data").as_string();
 		
 		size_t n = data.size();
@@ -278,7 +278,7 @@ bool PlayerClient::communicate()
 		session->send_msg(json::serialize(v));
 	}
 	else if (cmd == "set_player_transform") {
-		int player_id = (int)msg.at("player_id").as_int64();
+		int player_id = (int)msg.at("player_id").get_int64();
 		glm::mat4 m;
 		from_json_array(m, msg.at("trans").as_array());
 		if (player_id == m_player_id) {
@@ -297,7 +297,7 @@ bool PlayerClient::communicate()
 		int shape_id = (int)msg.at("shape_id").get_int64();
 		m_renderer.remove_shape(shape_id);
 	} else if (cmd == "end_update") {
-		float elapsed_time = (float)msg.at("elapsed_time").as_double();
+		float elapsed_time = (float)msg.at("elapsed_time").get_double();
 		bool ret = m_renderer.end_update(elapsed_time);
 		json::value r = {{"continue", ret}};
 		session->send_msg(json::serialize(r));

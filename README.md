@@ -26,7 +26,24 @@ This simulation program lets you build a 3D world and drive a vehicle to explore
         veh-sim.exe join=<server>:<port>
         ```
 
-4. Read the [documentation](docs/scene_desc.md) and [examples](docs/examples.json) on how to build your own scene.
+4. You can run the game in a web browser:
+    * Run game server following the step above using network port **9001**:
+        ```
+        veh-sim.exe server=9001 ..\..\scene_desc.json
+        ```
+    * Run a web server to serve the web page. You need to have Python installed on your system and in the Windows path. Then run:
+        ```
+        cd <working tree>\web
+        run.cmd
+        ```
+    * You should see this output:
+        ```
+        Serving HTTP on :: port 9000 (http://[::]:9000/) ...
+        ```
+
+    * Open a web browser then enter the URL: http://localhost:9000/
+
+5. Read the [documentation](docs/scene_desc.md) and [examples](docs/examples.json) on how to build your own scene.
 
 ## How to play
 

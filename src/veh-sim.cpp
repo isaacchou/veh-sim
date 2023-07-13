@@ -108,7 +108,10 @@ int main(int argc, char *argv[])
 		std::string arg = argv[1];
 		const std::string server_opt = "server=";
 		if (arg.starts_with(server_opt)) {
-			return run_server(arg.substr(server_opt.size()), argv[2]);
+			int ret = 0;
+			do {
+				ret = run_server(arg.substr(server_opt.size()), argv[2]);
+			} while(ret == 0);
 		}
 	}
 	// show usage:

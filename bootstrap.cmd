@@ -105,6 +105,19 @@ if exist boost_1_82_0 (
     del boost_1_82_0.zip
 )
 
+if exist gl-matrix-3.4.1 (
+    echo ===
+    echo === Skipping gl-matrix
+    echo ===
+) else (
+    echo ===
+    echo === Setting up gl-matrix
+    echo ===
+    curl -LO https://github.com/toji/gl-matrix/archive/refs/tags/v3.4.1.zip
+    tar xf v3.4.1.zip
+    del v3.4.1.zip
+)
+
 popd
 
 echo ===
