@@ -12,11 +12,11 @@ const keyboard = new Set();
 const mouse = new Set();
 const key_map = new Map([["Escape",256],["Enter",257],["ArrowRight",262],["ArrowLeft",263],
                         ["ArrowDown",264],["ArrowUp",265],["ShiftLeft",340],["ShiftRight",344]]);
-
 class Renderer 
 {
-  constructor(gl) {
+  constructor(gl, camera) {
     this.gl = gl;
+    this.camera = camera;
     this.shaderProgram = this.initShaderProgram();
     this.gl.useProgram(this.shaderProgram);
     this.shape_map = new Map();
@@ -26,28 +26,29 @@ class Renderer
     const gl = this.gl;
     const shaderProgram = this.shaderProgram;
 
-    const projection = mat4.create();
-    mat4.perspective(projection, glMatrix.glMatrix.toRadian(60.0), 1024.0/576.0, 0.1, 600.0);
-    gl.uniformMatrix4fv(gl.getUniformLocation(shaderProgram, "projection"), false, new Float32Array(projection));
-
     // a directional light vector pointing from the light source
     const light_direction = vec3.create();
     vec3.normalize(light_direction, [-1, -3, 0]);
     const light_ambient = 0.6;
     gl.uniform1f(gl.getUniformLocation(shaderProgram, "light.ambient"), light_ambient);
     gl.uniform3fv(gl.getUniformLocation(shaderProgram, "light.direction"), light_direction);
-    
     gl.enable(gl.DEPTH_TEST);
-
-    // reder one frame
     gl.clearColor(0.2, 0.3, 0.3, 1.0);
     gl.clearDepth(1.0);
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+    this.reshape();
+  }
 
-    // setup camera transform
-    const view = mat4.create();
-    mat4.lookAt(view, [30, 7.5, -170], [30, 5, -150], [0, 1, 0]);
-    gl.uniformMatrix4fv(gl.getUniformLocation(shaderProgram, "view"), false, new Float32Array(view));
+  reshape() {
+    const canvas = document.querySelector("canvas");
+    canvas.width = document.documentElement.clientWidth;
+    canvas.height = document.documentElement.clientHeight;
+    this.gl.viewport(0, 0, canvas.width, canvas.height);
+    
+    const projection = mat4.create();
+    const fovy = window.matchMedia("(orientation: portrait)").matches ? 90.0 : 60.0
+    mat4.perspective(projection, glMatrix.glMatrix.toRadian(fovy), canvas.width/canvas.height, 0.1, 600.0);
+    this.gl.uniformMatrix4fv(this.gl.getUniformLocation(this.shaderProgram, "projection"), false, new Float32Array(projection));
   }
 
   draw() {
@@ -55,6 +56,9 @@ class Renderer
     gl.clearColor(0.2, 0.3, 0.3, 1.0);
     gl.clearDepth(1.0);
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
+    const view = this.camera.get_view_matrix();
+    gl.uniformMatrix4fv(gl.getUniformLocation(this.shaderProgram, "view"), false, new Float32Array(view));
     for (let shape of this.shape_map.values()) {
       shape.draw(this.shaderProgram, shape.trans);
     }
@@ -270,8 +274,62 @@ const game_client = new (class {
       alert("Failed to initialize WebGL");
       return;
     }
-    this.renderer = new Renderer(gl);
+
+    this.player_id = -1;
+
+    this.camera = new (class {
+      constructor() {
+        this.eye = vec3.create();
+        this.target = vec3.create();
+        this.trans = mat4.create();
+        this.pos_buffer = new Array();
+      }
+
+      setup(eye, target, follow) {
+        // camera always follows player for now
+        this.eye = eye;
+        this.target = target;
+      }
+
+      update(trans) {
+        this.trans = trans;
+      }
+
+      get_stabilized_pos(pos) {
+        const n = 90;
+        if (this.pos_buffer.length >= n) {
+          // remove the oldest (first) position
+          this.pos_buffer.shift();
+        }
+        this.pos_buffer.push(pos);
+        const p = this.pos_buffer.reduce((acc, cur) => vec3.add(acc, cur, acc));
+        return vec3.scale(p, p, 1.0 / this.pos_buffer.length);
+      }
+
+      get_view_matrix() {
+        let eye = vec3.create();
+        vec3.transformMat4(eye, this.eye, this.trans);
+        eye = this.get_stabilized_pos(eye);
+        
+        const target = vec3.create();
+        vec3.transformMat4(target, this.target, this.trans);
+        
+        const m = mat4.create();
+        mat4.lookAt(m, eye, target, [0, 1, 0]);
+        return m;
+      }
+    });
+
+    this.renderer = new Renderer(gl, this.camera);
     this.renderer.setup();
+    window.addEventListener('resize', function() { 
+      game_client.renderer.reshape(); 
+    }, false);
+
+    this.cursor_last_x = 0;
+    this.cursor_last_y = 0;
+    this.cursor_cur_x = 0;
+    this.cursor_cur_y = 0;
 
     const hostname = location.hostname;
     const port = "9001"; // change this if the game server is listening on a different port
@@ -281,6 +339,31 @@ const game_client = new (class {
   }
 
   init_ctrls() {  
+    document.body.addEventListener("touchstart", function(e){
+      e.preventDefault();
+      e.stopImmediatePropagation();
+      game_client.cursor_cur_x = e.touches[0].clientX;
+      game_client.cursor_cur_y = e.touches[0].clientY;
+      game_client.cursor_last_x = e.touches[0].clientX;
+      game_client.cursor_last_y = e.touches[0].clientY;
+    }, { passive: false });
+    document.body.addEventListener("touchmove", function(e){
+      game_client.cursor_cur_x = e.touches[0].clientX;
+      game_client.cursor_cur_y = e.touches[0].clientY;
+    }, false);
+    document.body.addEventListener("touchcancel", function(e){
+      game_client.cursor_cur_x = 0;
+      game_client.cursor_cur_y = 0;
+      game_client.cursor_last_x = 0;
+      game_client.cursor_last_y = 0;
+    }, false);
+    document.body.addEventListener("touchend", function(e){
+      game_client.cursor_cur_x = 0;
+      game_client.cursor_cur_y = 0;
+      game_client.cursor_last_x = 0;
+      game_client.cursor_last_y = 0;
+    }, false);    
+    
     document.body.onkeydown = function(e){
       if(key_map.has(e.code)) {
         keyboard.add(key_map.get(e.code));
@@ -318,8 +401,10 @@ const game_client = new (class {
       switch (msg.cmd) {
         // initial setup messages
         case "set_player_id":
+          this.player_id = msg.player_id;
           break;
         case "setup_camera":
+          this.camera.setup(msg.eye, msg.target, msg.follow);
           break;
         case "add_texture":
           const image = Uint8Array.from(atob(msg.data), (c) => c.charCodeAt(0));
@@ -336,6 +421,20 @@ const game_client = new (class {
           for(let button of mouse.values()) {
             buttons.push(button);
           }
+          
+          const delta_x = game_client.cursor_cur_x - game_client.cursor_last_x; 
+          const delta_y = game_client.cursor_cur_y - game_client.cursor_last_y;
+          // don't move and turn at the same time
+          if ((delta_x * delta_x) > (delta_y * delta_y)) {
+            // x movement is more dominant
+            if (delta_x < -0.5) keys.push(key_map.get("ArrowLeft"));
+            if (delta_x > 0.5) keys.push(key_map.get("ArrowRight"));
+          } else {
+            // y movement is more dominant
+            if (delta_y > 0.5) keys.push(key_map.get("ArrowDown"));
+            if (delta_y < -0.5) keys.push(key_map.get("ArrowUp"));
+          }
+
           const ctlr = {
             "keyboard": keys,
             "mouse": buttons,
@@ -346,6 +445,9 @@ const game_client = new (class {
           socket.send(JSON.stringify(ctlr));
           break;
         case "set_player_transform":
+          if (this.player_id == msg.player_id) {
+            this.camera.update(msg.trans);
+          }
           break;
         case "add_shape":
           this.renderer.add_shape(msg.shape_id, msg.descriptor);

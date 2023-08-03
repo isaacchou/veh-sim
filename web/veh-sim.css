@@ -1,15 +1,15 @@
-body 
-{
-  text-align : center;
+* {
+  margin:0; 
+  padding:0;
 }
 
-canvas 
-{
+body {
+  width:100%;
+  height:100%;
+}
+
+canvas {
   display : block;
-  width : 1024px;
-  height : 576px;
-  margin : auto;
-  padding : 0;
   border : none;
   background-color : black;
 }

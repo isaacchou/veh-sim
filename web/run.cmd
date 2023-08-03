@@ -9,6 +9,10 @@ if not exist gl-matrix-min.js (
     copy ..\..\third_party\gl-matrix-3.4.1\dist\gl-matrix-min.js .
 )
 
-python -m http.server 9000
+pushd ..\x64\Release
+start veh-sim.exe server=9001 ..\..\scene_desc.json
+popd
+
+start python -m http.server 9000
 
 :done
